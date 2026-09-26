@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="免費線上浮水印工具：雜訊覆蓋（Overlay）＋個人浮水印，支援批量處理與打包下載。圖片只在你的瀏覽器處理，不會上傳。">
+<title>浮水印工坊</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+html{color-scheme:light}
+body{margin:0}
+img{max-width:100%}
+:root{
+  --bg:#F4EFFC;
+  --bg-2:#EBE2F8;
+  --surface:#FFFFFF;
+  --surface-2:#F8F4FE;
+  --ink:#3A2D57;
+  --ink-soft:#7A6B98;
+  --line:#E2D7F3;
+  --accent:#9A7ED6;
+  --accent-strong:#7C5EC4;
+  --accent-soft:#E6DBFA;
+  --blush:#F6C9DD;
+  --on-accent:#FFFFFF;
+  --check-a:#F1EAFB;
+  --check-b:#FFFFFF;
+  --shadow:0 10px 30px -14px rgba(92,64,150,.35);
+  --font:"Huninn","Zen Maru Gothic","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --round:"Fredoka","Huninn","Zen Maru Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#1D1829;--bg-2:#261F36;--surface:#2A2340;--surface-2:#312848;
+    --ink:#EFE8FC;--ink-soft:#B3A6CF;--line:#40355C;
+    --accent:#B99CF2;--accent-strong:#CDB6FA;--accent-soft:#3D3160;
+    --blush:#6B3F5A;--on-accent:#1D1829;--check-a:#2F2744;--check-b:#272036;
+    --shadow:0 10px 30px -14px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#1D1829;--bg-2:#261F36;--surface:#2A2340;--surface-2:#312848;
+  --ink:#EFE8FC;--ink-soft:#B3A6CF;--line:#40355C;
+  --accent:#B99CF2;--accent-strong:#CDB6FA;--accent-soft:#3D3160;
+  --blush:#6B3F5A;--on-accent:#1D1829;--check-a:#2F2744;--check-b:#272036;
+  --shadow:0 10px 30px -14px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  background:
+    radial-gradient(circle at 12% 0%, var(--bg-2) 0 220px, transparent 221px),
+    radial-gradient(circle at 100% 30%, var(--bg-2) 0 160px, transparent 161px),
+    var(--bg);
+  color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55;
+  padding-inline:16px;padding-block:20px 48px;min-height:100%;
+}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{width:52px;height:52px;flex:none}
+.brand h1{font-family:var(--round);font-weight:700;font-size:26px;margin:0;letter-spacing:.3px;text-wrap:balance}
+.brand h1 span{color:var(--accent-strong)}
+.brand p{margin:0;color:var(--ink-soft);font-size:14px}
+.brand .author{font-size:12px;letter-spacing:.5px;opacity:.85;margin-top:2px}
+.upload-btn{margin-left:auto}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}.upload-btn{margin-left:0}}
+
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}
+.stage-card{padding:14px;display:flex;flex-direction:column;gap:12px}
+.stage{
+  position:relative;border-radius:16px;min-height:260px;display:grid;place-items:center;padding:14px;
+  background-color:var(--check-b);
+  background-image:linear-gradient(45deg,var(--check-a) 25%,transparent 25%,transparent 75%,var(--check-a) 75%),
+    linear-gradient(45deg,var(--check-a) 25%,transparent 25%,transparent 75%,var(--check-a) 75%);
+  background-size:22px 22px;background-position:0 0,11px 11px;
+}
+.stage.drag{outline:3px dashed var(--accent);outline-offset:-6px}
+#preview{max-width:100%;max-height:68vh;border-radius:8px;box-shadow:0 6px 20px -8px rgba(58,45,87,.45);touch-action:none;display:block}
+#preview.movable{cursor:grab}
+#preview.moving{cursor:grabbing}
+.stage-hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:var(--surface);color:var(--ink-soft);
+  font-size:12.5px;padding:4px 12px;border-radius:99px;border:1px solid var(--line);white-space:nowrap;pointer-events:none}
+.meta-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;color:var(--ink-soft)}
+.meta-row b{color:var(--ink);font-weight:500}
+.tag{display:inline-block;background:var(--blush);color:var(--ink);font-size:11.5px;border-radius:99px;padding:1px 9px;margin-left:6px;vertical-align:1px}
+
+.strip{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px}
+.thumb{position:relative;flex:none;width:96px;height:96px;border-radius:14px;border:2px solid var(--line);background:var(--surface-2);
+  display:grid;place-items:center;cursor:pointer;padding:0;overflow:hidden}
+.thumb canvas{max-width:100%;max-height:100%;display:block}
+.thumb.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.thumb .x{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:var(--surface);color:var(--ink);
+  font-size:14px;line-height:22px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.thumb .n{position:absolute;left:5px;bottom:4px;font-family:var(--round);font-size:11px;background:var(--surface);border-radius:99px;padding:0 6px}
+.add-thumb{flex:none;width:96px;height:96px;border-radius:14px;border:2px dashed var(--accent);background:transparent;color:var(--accent-strong);
+  font-family:var(--round);font-size:30px;cursor:pointer}
+
+.panel{display:flex;flex-direction:column;gap:16px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;background:var(--surface-2);border-radius:18px;border:1.5px solid var(--line)}
+.tab{border:none;background:transparent;color:var(--ink-soft);font:inherit;font-size:14.5px;padding:9px 6px;border-radius:13px;cursor:pointer;display:flex;gap:6px;align-items:center;justify-content:center}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 3px 10px -4px rgba(92,64,150,.4)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.dot.on{background:var(--accent)}
+.section{padding:18px;display:flex;flex-direction:column;gap:16px}
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sec-head h2{margin:0;font-size:17px;font-weight:700;font-family:var(--round)}
+.sec-head small{display:block;color:var(--ink-soft);font-size:12.5px;font-weight:400;font-family:var(--font)}
+
+.field{display:flex;flex-direction:column;gap:7px}
+.field>label,.lbl{font-size:13.5px;color:var(--ink-soft);display:flex;justify-content:space-between;align-items:baseline}
+.val{font-family:var(--round);color:var(--ink);font-variant-numeric:tabular-nums;font-size:13.5px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:99px;background:var(--accent-soft);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--surface);border:3px solid var(--accent);cursor:pointer;box-shadow:0 2px 6px rgba(92,64,150,.35)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--surface);border:3px solid var(--accent);cursor:pointer}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--accent-soft)}
+
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;font-size:13.5px;padding:6px 12px;border-radius:99px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.swatches{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.sw{border:2px solid var(--line);border-radius:14px;background:var(--surface-2);padding:5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font:inherit;font-size:12px;color:var(--ink)}
+.sw canvas,.sw .sw-up{width:100%;aspect-ratio:1;border-radius:9px;display:block;max-width:100%}
+.sw .sw-up{display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-strong);font-size:20px;font-family:var(--round);background-size:cover;background-position:center}
+.sw[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+.switch{position:relative;width:48px;height:28px;flex:none}
+.switch input{opacity:0;width:100%;height:100%;margin:0;position:absolute;inset:0;cursor:pointer;z-index:1}
+.switch span{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:background .2s}
+.switch span::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .2s}
+.switch input:checked+span{background:var(--accent)}
+.switch input:checked+span::after{transform:translateX(20px)}
+.switch input:focus-visible+span{box-shadow:0 0 0 4px var(--accent-soft)}
+
+.btn{border:none;font:inherit;font-size:14.5px;border-radius:99px;padding:10px 18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.btn-main{background:var(--accent);color:var(--on-accent);box-shadow:0 6px 16px -6px var(--accent)}
+.btn-main:hover{background:var(--accent-strong)}
+.btn-soft{background:var(--accent-soft);color:var(--ink)}
+.btn-ghost{background:transparent;color:var(--ink-soft);border:1.5px solid var(--line)}
+.btn:disabled{opacity:.55;cursor:progress}
+.btn:focus-visible,.tab:focus-visible,.seg button:focus-visible,.sw:focus-visible,.thumb:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>.btn{flex:1 1 auto}
+
+input[type=text],select{font:inherit;font-size:14.5px;color:var(--ink);background:var(--surface-2);border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;width:100%}
+input[type=color]{width:44px;height:38px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface-2);padding:3px;cursor:pointer;flex:none}
+.inline{display:flex;gap:8px;align-items:center}
+.check{display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--ink)}
+.field>label.check{justify-content:flex-start;color:var(--ink)}
+.check input{accent-color:var(--accent);width:17px;height:17px}
+
+.grid9{display:grid;grid-template-columns:repeat(3,34px);gap:5px}
+.grid9 button{width:34px;height:34px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface-2);cursor:pointer;display:grid;place-items:center;padding:0}
+.grid9 button::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.grid9 button:hover{background:var(--accent-soft)}
+.pos-wrap{display:flex;gap:14px;align-items:center}
+.pos-wrap p{margin:0;font-size:12.5px;color:var(--ink-soft)}
+
+.wm-src{display:flex;gap:10px;align-items:center}
+.wm-prev{width:78px;height:58px;border-radius:12px;flex:none;border:1.5px solid var(--line);display:grid;place-items:center;overflow:hidden;
+  background-color:var(--check-b);background-image:linear-gradient(45deg,var(--check-a) 25%,transparent 25%,transparent 75%,var(--check-a) 75%),linear-gradient(45deg,var(--check-a) 25%,transparent 25%,transparent 75%,var(--check-a) 75%);
+  background-size:12px 12px;background-position:0 0,6px 6px}
+.wm-prev canvas{max-width:92%;max-height:88%}
+.divider{height:1.5px;background:var(--line);border-radius:2px}
+.muted{color:var(--ink-soft);font-size:12.5px;margin:0}
+.saved{color:var(--accent-strong);font-size:12.5px;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.linkbtn{border:none;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.linkbtn:hover{color:var(--ink)}
+footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding-top:6px}
+.progress{height:8px;border-radius:99px;background:var(--accent-soft);overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:var(--ink);color:var(--bg);
+  padding:10px 18px;border-radius:99px;font-size:14px;transition:.25s;pointer-events:none;z-index:10;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="34" r="26" fill="var(--accent-soft)"/>
+      <path d="M32 12c7 9 14 15 14 24a14 14 0 0 1-28 0c0-9 7-15 14-24z" fill="var(--accent)"/>
+      <circle cx="27" cy="36" r="2.4" fill="var(--on-accent)"/><circle cx="37" cy="36" r="2.4" fill="var(--on-accent)"/>
+      <path d="M29 42q3 3 6 0" stroke="var(--on-accent)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="22.5" cy="41" r="2.4" fill="var(--blush)"/><circle cx="41.5" cy="41" r="2.4" fill="var(--blush)"/>
+      <path d="M51 10l1.6 3.6 3.6 1.6-3.6 1.6L51 20.4l-1.6-3.6-3.6-1.6 3.6-1.6z" fill="var(--accent-strong)"/>
+    </svg>
+    <div class="brand">
+      <h1><span>浮水印工坊</span></h1>
+      <p>雜訊覆蓋 × 個人浮水印，一次處理整批圖片</p>
+      <p class="author">作者：懶人阿暝</p>
+    </div>
+    <button class="btn btn-main upload-btn" id="uploadBtn" type="button">＋ 加入圖片</button>
+    <input type="file" id="fileInput" accept="image/*" multiple hidden>
+  </header>
+
+  <div class="main">
+    <section class="card stage-card" aria-label="預覽">
+      <div class="stage" id="stage">
+        <canvas id="preview" width="800" height="600"></canvas>
+        <div class="stage-hint" id="stageHint" hidden>在圖上拖曳可移動浮水印</div>
+      </div>
+      <div class="meta-row">
+        <div id="metaName"></div>
+        <div id="metaCount"></div>
+      </div>
+      <div class="strip" id="strip" aria-label="圖片列表"></div>
+    </section>
+
+    <aside class="panel">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tabNoise" aria-selected="true" aria-controls="panelNoise"><i class="dot" id="dotNoise"></i>雜訊覆蓋</button>
+        <button class="tab" role="tab" id="tabWm" aria-selected="false" aria-controls="panelWm"><i class="dot" id="dotWm"></i>個人浮水印</button>
+      </div>
+
+      <!-- NOISE -->
+      <div class="card section" id="panelNoise" role="tabpanel">
+        <div class="sec-head">
+          <h2>雜訊覆蓋<small>整張圖疊上紋理，防止 AI 擷取與盜用</small></h2>
+          <label class="switch" title="開啟雜訊"><input type="checkbox" id="noiseOn" checked><span></span></label>
+        </div>
+        <div class="field">
+          <div class="lbl">雜訊素材</div>
+          <div class="swatches" id="noiseSwatches"></div>
+          <input type="file" id="noiseFile" accept="image/*" hidden>
+          <p class="saved" id="noiseSaved" hidden><span id="noiseSavedName"></span><button type="button" class="linkbtn" id="noiseReplace">換一張</button><button type="button" class="linkbtn" id="noiseForget">移除</button></p>
+        </div>
+        <div class="field">
+          <div class="lbl">混合模式</div>
+          <div class="seg" id="noiseBlend">
+            <button type="button" data-v="overlay">覆蓋</button>
+            <button type="button" data-v="soft-light">柔光</button>
+            <button type="button" data-v="multiply">色彩增值</button>
+            <button type="button" data-v="screen">濾色</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="noiseOpacity">透明度 <span class="val" id="noiseOpacityV"></span></label>
+          <input type="range" id="noiseOpacity" min="0" max="100" value="35">
+        </div>
+        <div class="field">
+          <div class="lbl">鋪法</div>
+          <div class="seg" id="noiseFit">
+            <button type="button" data-v="tile">平鋪（保留顆粒）</button>
+            <button type="button" data-v="cover">拉伸滿版</button>
+          </div>
+        </div>
+        <div class="field" id="grainField">
+          <label for="noiseGrain">顆粒大小 <span class="val" id="noiseGrainV"></span></label>
+          <input type="range" id="noiseGrain" min="25" max="400" value="100">
+        </div>
+      </div>
+
+      <!-- WATERMARK -->
+      <div class="card section" id="panelWm" role="tabpanel" hidden>
+        <div class="sec-head">
+          <h2>個人浮水印<small>上傳你的簽名／Logo，建議用透明底 PNG</small></h2>
+          <label class="switch" title="開啟浮水印"><input type="checkbox" id="wmOn" checked><span></span></label>
+        </div>
+
+        <div class="field">
+          <div class="lbl">浮水印來源</div>
+          <div class="seg" id="wmSrc">
+            <button type="button" data-v="image">上傳圖片</button>
+            <button type="button" data-v="text">文字</button>
+          </div>
+        </div>
+
+        <div class="field" id="wmImageField">
+          <div class="wm-src">
+            <div class="wm-prev" id="wmPrevBox"></div>
+            <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
+              <button class="btn btn-soft" type="button" id="wmUploadBtn">選擇浮水印圖</button>
+              <span class="muted" id="wmFileName">尚未上傳，先顯示範例</span>
+              <p class="saved" id="wmSaved" hidden>✓ 已記住，下次打開會自動載入<button type="button" class="linkbtn" id="wmForget">移除</button></p>
+            </div>
+          </div>
+          <input type="file" id="wmFile" accept="image/*" hidden>
+          <label class="check"><input type="checkbox" id="wmKnockout"> 去除白色背景</label>
+          <div class="lbl">顏色</div>
+          <div class="seg" id="wmTint">
+            <button type="button" data-v="none">原色</button>
+            <button type="button" data-v="#ffffff">白色</button>
+            <button type="button" data-v="#1f1a2b">黑色</button>
+            <button type="button" data-v="custom">自訂</button>
+          </div>
+          <div class="inline" id="wmTintCustomRow" hidden><input type="color" id="wmTintColor" value="#9a7ed6"><span class="muted">把浮水印整個染成這個顏色</span></div>
+        </div>
+
+        <div class="field" id="wmTextField" hidden>
+          <label for="wmText">浮水印文字</label>
+          <div class="inline">
+            <input type="text" id="wmText" value="© 我的作品 ✦">
+            <input type="color" id="wmTextColor" value="#ffffff" aria-label="文字顏色">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="wmOpacity">透明度 <span class="val" id="wmOpacityV"></span></label>
+          <input type="range" id="wmOpacity" min="0" max="100" value="55">
+        </div>
+        <div class="field">
+          <label for="wmSize">大小 <span class="val" id="wmSizeV"></span></label>
+          <input type="range" id="wmSize" min="3" max="100" value="28">
+        </div>
+        <div class="field">
+          <label for="wmRotate">角度 <span class="val" id="wmRotateV"></span></label>
+          <input type="range" id="wmRotate" min="-90" max="90" value="-20">
+        </div>
+
+        <div class="divider"></div>
+        <div class="field">
+          <div class="lbl">擺放方式</div>
+          <div class="seg" id="wmMode">
+            <button type="button" data-v="tile">滿版平鋪</button>
+            <button type="button" data-v="single">單個自由擺放</button>
+          </div>
+        </div>
+        <div class="field" id="wmGapField">
+          <label for="wmGap">間距 <span class="val" id="wmGapV"></span></label>
+          <input type="range" id="wmGap" min="0" max="300" value="70">
+          <label class="check"><input type="checkbox" id="wmStagger" checked> 交錯排列</label>
+        </div>
+        <div class="field" id="wmPosField" hidden>
+          <div class="lbl">快速定位</div>
+          <div class="pos-wrap">
+            <div class="grid9" id="grid9"></div>
+            <p>也可以直接在左邊預覽圖上拖曳。位置以比例記錄，整批圖片都會放在同樣的相對位置。</p>
+          </div>
+        </div>
+        <div class="field">
+          <div class="lbl">混合模式</div>
+          <div class="seg" id="wmBlend">
+            <button type="button" data-v="source-over">一般</button>
+            <button type="button" data-v="overlay">覆蓋</button>
+            <button type="button" data-v="soft-light">柔光</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPORT -->
+      <div class="card section">
+        <div class="sec-head"><h2>存圖<small>設定會套用到全部圖片，以原始尺寸輸出</small></h2></div>
+        <div class="field">
+          <div class="lbl">格式</div>
+          <div class="seg" id="fmt">
+            <button type="button" data-v="image/png">PNG</button>
+            <button type="button" data-v="image/jpeg">JPG</button>
+            <button type="button" data-v="image/webp">WebP</button>
+          </div>
+        </div>
+        <div class="field" id="qualityField" hidden>
+          <label for="quality">品質 <span class="val" id="qualityV"></span></label>
+          <input type="range" id="quality" min="50" max="100" value="92">
+        </div>
+        <div class="field">
+          <label for="suffix">檔名後綴</label>
+          <input type="text" id="suffix" value="_wm">
+        </div>
+        <div class="row">
+          <button class="btn btn-main" type="button" id="saveZip">全部打包 ZIP</button>
+          <button class="btn btn-soft" type="button" id="saveOne">存目前這張</button>
+        </div>
+        <button class="btn btn-main" type="button" id="saveAlbum" hidden>📱 存到手機相簿</button>
+        <button class="btn btn-ghost" type="button" id="saveEach">逐張下載</button>
+        <div class="progress" id="progress" hidden><i id="progressBar"></i></div>
+        <p class="muted" id="exportNote"></p>
+        <p class="muted" id="albumTip" hidden>存到相簿：先按按鈕準備圖片，再按一次開啟分享選單，選「儲存影像」（iPhone）或「儲存到相簿／相片」（Android）。</p>
+        <p class="muted">逐張下載時，瀏覽器可能會先問你「是否允許下載多個檔案」，選允許即可。</p>
+      </div>
+    </aside>
+  </div>
+  <footer>所有圖片都只在你的瀏覽器裡處理，不會上傳到任何伺服器。你的雜訊圖、浮水印和設定會記在這台裝置的瀏覽器中。</footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+
+/* ---------- state ---------- */
+const S = {
+  images: [], cur: 0,
+  noise: { on: true, src: 'fine', custom: null, customName: '', blend: 'overlay', opacity: .35, fit: 'tile', grain: 1 },
+  wm: { on: true, src: 'image', custom: null, customName: '', knockout: false, tint: 'none', tintColor: '#9a7ed6',
+        text: '© 我的作品 ✦', textColor: '#ffffff', opacity: .55, size: .28, rotate: -20,
+        mode: 'tile', gap: .7, stagger: true, pos: { x: .78, y: .86 }, blend: 'source-over' },
+  out: { type: 'image/png', quality: .92, suffix: '_wm' }
+};
+let uid = 0;
+
+/* ---------- helpers ---------- */
+function mk(w, h){ const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+function dims(src){ return { w: src.naturalWidth || src.width, h: src.naturalHeight || src.height }; }
+let toastT;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
+function loadImg(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file); const im = new Image();
+    im.onload = () => res(im); im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('無法讀取 ' + file.name)); };
+    im.src = url;
+  });
+}
+
+/* ---------- persistence: settings in localStorage, images in IndexedDB ---------- */
+const LS_KEY = 'lilac-watermark:settings:v1';
+const DB = (() => {
+  let p = null;
+  const open = () => p || (p = new Promise((res, rej) => {
+    if (!window.indexedDB) return rej(new Error('no idb'));
+    const r = indexedDB.open('lilac-watermark', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('assets');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const tx = (mode, fn) => open().then(db => new Promise((res, rej) => {
+    const t = db.transaction('assets', mode), st = t.objectStore('assets'); const q = fn(st);
+    t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+  }));
+  return {
+    put: (k, v) => tx('readwrite', st => st.put(v, k)).catch(() => { toast('瀏覽器不允許儲存，這次有效但下次需重新上傳'); }),
+    get: k => tx('readonly', st => st.get(k)).catch(() => null),
+    del: k => tx('readwrite', st => st.delete(k)).catch(() => null)
+  };
+})();
+function loadSettings(){
+  try {
+    const raw = localStorage.getItem(LS_KEY); if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.noise) Object.assign(S.noise, d.noise, { custom: null });
+    if (d.wm) Object.assign(S.wm, d.wm, { custom: null, pos: Object.assign({}, S.wm.pos, d.wm.pos) });
+    if (d.out) Object.assign(S.out, d.out);
+  } catch (e) {}
+}
+let saveT = 0;
+function saveSettings(){
+  clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    try {
+      const strip = o => { const c = Object.assign({}, o); delete c.custom; return c; };
+      localStorage.setItem(LS_KEY, JSON.stringify({ noise: strip(S.noise), wm: strip(S.wm), out: S.out }));
+    } catch (e) {}
+  }, 300);
+}
+function blobToImg(blob){
+  return new Promise((res, rej) => { const u = URL.createObjectURL(blob), im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
+}
+function applyControlsFromState(){
+  const set = (id, v) => { const el = $(id); if (el) el.value = v; };
+  set('noiseOpacity', Math.round(S.noise.opacity*100)); set('noiseGrain', Math.round(S.noise.grain*100));
+  set('wmOpacity', Math.round(S.wm.opacity*100)); set('wmSize', Math.round(S.wm.size*100));
+  set('wmRotate', S.wm.rotate); set('wmGap', Math.round(S.wm.gap*100)); set('quality', Math.round(S.out.quality*100));
+  set('wmText', S.wm.text); set('wmTextColor', S.wm.textColor); set('wmTintColor', S.wm.tintColor); set('suffix', S.out.suffix);
+  $('noiseOn').checked = S.noise.on; $('wmOn').checked = S.wm.on; $('wmKnockout').checked = S.wm.knockout; $('wmStagger').checked = S.wm.stagger;
+}
+function refreshVisibility(){
+  $('wmImageField').hidden = S.wm.src !== 'image'; $('wmTextField').hidden = S.wm.src !== 'text';
+  $('wmTintCustomRow').hidden = S.wm.tint !== 'custom';
+  $('wmGapField').hidden = S.wm.mode !== 'tile'; $('wmPosField').hidden = S.wm.mode !== 'single';
+  $('qualityField').hidden = S.out.type === 'image/png';
+  $('noiseSaved').hidden = !S.noise.custom;
+  if (S.noise.custom) $('noiseSavedName').textContent = '✓ 已記住：' + (S.noise.customName || '我的雜訊圖');
+  $('wmSaved').hidden = !S.wm.custom;
+  $('wmFileName').textContent = S.wm.custom ? (S.wm.customName || '我的浮水印') : '尚未上傳，先顯示範例';
+}
+loadSettings();
+applyControlsFromState();
+
+/* ---------- built-in noise ---------- */
+function makeNoise(size, color, soft){
+  const c = mk(size, size), x = c.getContext('2d'), d = x.createImageData(size, size), p = d.data;
+  for (let i = 0; i < p.length; i += 4){
+    if (color){ p[i] = Math.random()*255; p[i+1] = Math.random()*255; p[i+2] = Math.random()*255; }
+    else { let v = Math.random()*255; if (soft) v = 128 + (v-128)*.7; p[i] = p[i+1] = p[i+2] = v; }
+    p[i+3] = 255;
+  }
+  x.putImageData(d, 0, 0); return c;
+}
+function makePaper(size){
+  // blurred blotches + fine grain: a watercolor-paper feel
+  const base = makeNoise(48, false), c = mk(size, size), x = c.getContext('2d');
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  x.drawImage(base, 0, 0, size, size);
+  x.globalAlpha = .5; x.globalCompositeOperation = 'overlay'; x.drawImage(makeNoise(size, false), 0, 0);
+  return c;
+}
+const NOISES = {
+  fine:   { label: '細顆粒', tile: makeNoise(256, false), smooth: false, k: 1 },
+  coarse: { label: '粗顆粒', tile: makeNoise(64, false, true), smooth: false, k: 3 },
+  color:  { label: '彩色', tile: makeNoise(256, true), smooth: false, k: 1 },
+  paper:  { label: '紙紋', tile: makePaper(256), smooth: true, k: 2 }
+};
+
+/* ---------- sample images (clearly labelled) ---------- */
+function sampleLandscape(){
+  const c = mk(1500, 1000), x = c.getContext('2d');
+  let g = x.createLinearGradient(0, 0, 0, 1000); g.addColorStop(0, '#CDB8F2'); g.addColorStop(.6, '#F7D6E6'); g.addColorStop(1, '#FCE9D8');
+  x.fillStyle = g; x.fillRect(0, 0, 1500, 1000);
+  x.fillStyle = '#FFF4DA'; x.beginPath(); x.arc(1080, 360, 120, 0, 7); x.fill();
+  const hills = [['#B79CE6', 640, 380], ['#9C7FD6', 740, 300], ['#7E62BF', 840, 260]];
+  hills.forEach(([col, y, amp], i) => { x.fillStyle = col; x.beginPath(); x.moveTo(0, 1000);
+    for (let X = 0; X <= 1500; X += 20) x.lineTo(X, y + Math.sin(X/(260+i*70) + i*1.7)*amp*.25);
+    x.lineTo(1500, 1000); x.fill(); });
+  x.fillStyle = 'rgba(255,255,255,.85)';
+  [[260,190,46],[330,170,58],[400,195,42],[640,120,34],[690,106,44],[740,124,30]].forEach(([a,b,r]) => { x.beginPath(); x.arc(a,b,r,0,7); x.fill(); });
+  return c;
+}
+function samplePortrait(){
+  const c = mk(1000, 1300), x = c.getContext('2d');
+  let g = x.createRadialGradient(500, 520, 60, 500, 650, 900); g.addColorStop(0, '#FFF1F7'); g.addColorStop(1, '#D9C8F6');
+  x.fillStyle = g; x.fillRect(0, 0, 1000, 1300);
+  const flower = (cx, cy, r, col) => { x.fillStyle = col; for (let i = 0; i < 5; i++){ const a = i/5*Math.PI*2; x.beginPath(); x.arc(cx+Math.cos(a)*r, cy+Math.sin(a)*r, r*.8, 0, 7); x.fill(); }
+    x.fillStyle = '#FFE59A'; x.beginPath(); x.arc(cx, cy, r*.55, 0, 7); x.fill(); };
+  x.strokeStyle = '#8FB98A'; x.lineWidth = 14; x.lineCap = 'round';
+  [[500,640,500,1200],[300,860,380,1200],[720,820,640,1200]].forEach(([a,b,c2,d]) => { x.beginPath(); x.moveTo(a,b); x.quadraticCurveTo((a+c2)/2+30,(b+d)/2,c2,d); x.stroke(); });
+  flower(500, 600, 110, '#B28FE8'); flower(300, 840, 80, '#F4A9C8'); flower(720, 800, 90, '#C9B2F3');
+  return c;
+}
+
+/* ---------- watermark source ---------- */
+function sampleWatermark(){
+  const c = mk(900, 260), x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.strokeStyle = '#fff'; x.lineWidth = 10; x.lineJoin = 'round';
+  x.beginPath(); x.roundRect ? x.roundRect(10, 10, 880, 240, 120) : x.rect(10, 10, 880, 240); x.stroke();
+  x.font = '600 120px Fredoka, Huninn, sans-serif'; x.textBaseline = 'middle'; x.textAlign = 'center';
+  x.fillText('@lilac.art', 470, 135);
+  x.beginPath(); const s = 34, cx = 110, cy = 130;
+  x.moveTo(cx, cy-s); x.quadraticCurveTo(cx, cy, cx+s, cy); x.quadraticCurveTo(cx, cy, cx, cy+s); x.quadraticCurveTo(cx, cy, cx-s, cy); x.quadraticCurveTo(cx, cy, cx, cy-s); x.fill();
+  return c;
+}
+function textWatermark(){
+  const x0 = mk(10, 10).getContext('2d'); const f = '600 140px Fredoka, Huninn, "Zen Maru Gothic", sans-serif';
+  x0.font = f; const t = S.wm.text || ' '; const w = x0.measureText(t).width;
+  const c = mk(w + 60, 200), x = c.getContext('2d'); x.font = f; x.fillStyle = S.wm.textColor; x.textBaseline = 'middle'; x.fillText(t, 30, 104);
+  return c;
+}
+let wmSource = null;
+function rebuildWm(){
+  if (S.wm.src === 'text'){ wmSource = textWatermark(); }
+  else {
+    const base = S.wm.custom || sampleWatermark();
+    const { w, h } = dims(base);
+    const scale = Math.min(1, 2400 / Math.max(w, h));
+    const c = mk(w*scale, h*scale), x = c.getContext('2d');
+    x.drawImage(base, 0, 0, c.width, c.height);
+    if (S.wm.knockout){
+      const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+      for (let i = 0; i < p.length; i += 4){ const m = Math.min(p[i], p[i+1], p[i+2]); const k = Math.max(0, Math.min(1, (250 - m) / 45)); p[i+3] *= k; }
+      x.putImageData(d, 0, 0);
+    }
+    const tint = S.wm.tint === 'custom' ? S.wm.tintColor : S.wm.tint;
+    if (tint !== 'none'){ x.globalCompositeOperation = 'source-in'; x.fillStyle = tint; x.fillRect(0, 0, c.width, c.height); }
+    wmSource = c;
+  }
+  const box = $('wmPrevBox'); box.innerHTML = ''; const pv = mk(wmSource.width, wmSource.height); pv.getContext('2d').drawImage(wmSource, 0, 0); box.appendChild(pv);
+}
+
+/* ---------- rendering pipeline (resolution independent) ---------- */
+function drawNoise(x, W, H){
+  const n = S.noise; if (!n.on || n.opacity <= 0) return;
+  const custom = n.src === 'custom';
+  const src = custom ? n.custom : NOISES[n.src].tile; if (!src) return;
+  const { w: sw, h: sh } = dims(src);
+  x.save(); x.globalAlpha = n.opacity; x.globalCompositeOperation = n.blend;
+  if (n.fit === 'cover'){
+    x.imageSmoothingEnabled = true;
+    const s = Math.max(W/sw, H/sh), dw = sw*s, dh = sh*s; x.drawImage(src, (W-dw)/2, (H-dh)/2, dw, dh);
+  } else {
+    const k = (custom ? 1 : NOISES[n.src].k) * n.grain * Math.max(W, H) / 1600;
+    const tw = Math.max(2, sw*k), th = Math.max(2, sh*k);
+    x.imageSmoothingEnabled = custom || NOISES[n.src].smooth;
+    for (let yy = 0; yy < H; yy += th) for (let xx = 0; xx < W; xx += tw) x.drawImage(src, Math.floor(xx), Math.floor(yy), Math.ceil(tw)+1, Math.ceil(th)+1);
+  }
+  x.restore();
+}
+function drawWm(x, W, H){
+  const m = S.wm; if (!m.on || !wmSource || m.opacity <= 0) return;
+  const ww = m.size * Math.min(W, H), wh = ww * wmSource.height / wmSource.width;
+  const rot = m.rotate * Math.PI / 180;
+  x.save(); x.globalAlpha = m.opacity; x.globalCompositeOperation = m.blend; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  if (m.mode === 'single'){
+    x.translate(m.pos.x * W, m.pos.y * H); x.rotate(rot); x.drawImage(wmSource, -ww/2, -wh/2, ww, wh);
+  } else {
+    const gap = m.gap * ww * .5, sx = ww + gap, sy = wh + gap;
+    const R = Math.hypot(W, H) / 2 + Math.max(sx, sy);
+    x.translate(W/2, H/2); x.rotate(rot);
+    const rows = Math.ceil(R / sy), cols = Math.ceil(R / sx) + 1;
+    for (let r = -rows; r <= rows; r++){
+      const off = m.stagger && (r & 1) ? sx/2 : 0;
+      for (let c = -cols; c <= cols; c++) x.drawImage(wmSource, c*sx + off - ww/2, r*sy - wh/2, ww, wh);
+    }
+  }
+  x.restore();
+}
+function renderTo(canvas, item, W, H, opaqueBg){
+  canvas.width = Math.max(1, Math.round(W)); canvas.height = Math.max(1, Math.round(H));
+  const x = canvas.getContext('2d');
+  x.clearRect(0, 0, canvas.width, canvas.height);
+  if (opaqueBg){ x.fillStyle = '#ffffff'; x.fillRect(0, 0, canvas.width, canvas.height); }
+  x.drawImage(item.img, 0, 0, canvas.width, canvas.height);
+  drawNoise(x, canvas.width, canvas.height);
+  drawWm(x, canvas.width, canvas.height);
+}
+
+/* ---------- preview ---------- */
+const pv = $('preview');
+let raf = 0, thumbT = 0;
+function schedule(thumbs = true){
+  saveSettings(); if (typeof resetAlbum === 'function' && albumFiles) resetAlbum();
+  cancelAnimationFrame(raf); raf = requestAnimationFrame(renderPreview);
+  if (thumbs){ clearTimeout(thumbT); thumbT = setTimeout(renderThumbs, 220); }
+}
+function renderPreview(){
+  const it = S.images[S.cur]; if (!it) return;
+  const max = Math.min(1600, Math.max(700, Math.round($('stage').clientWidth * (window.devicePixelRatio || 1))));
+  const s = Math.min(1, max / Math.max(it.w, it.h));
+  renderTo(pv, it, it.w*s, it.h*s);
+  pv.classList.toggle('movable', S.wm.on && S.wm.mode === 'single');
+  $('stageHint').hidden = !(S.wm.on && S.wm.mode === 'single');
+  $('metaName').innerHTML = '';
+  const b = document.createElement('b'); b.textContent = it.name; $('metaName').appendChild(b);
+  $('metaName').append(`　${it.w} × ${it.h}px`);
+  if (it.sample){ const t = document.createElement('span'); t.className = 'tag'; t.textContent = '範例圖'; $('metaName').appendChild(t); }
+  $('metaCount').textContent = `第 ${S.cur+1} / ${S.images.length} 張`;
+}
+function renderThumbs(){
+  document.querySelectorAll('.thumb canvas').forEach(c => {
+    const it = S.images.find(i => i.id === +c.dataset.id); if (!it) return;
+    const s = 180 / Math.max(it.w, it.h); renderTo(c, it, it.w*s, it.h*s);
+  });
+}
+function buildStrip(){
+  const st = $('strip'); st.innerHTML = '';
+  S.images.forEach((it, i) => {
+    const b = document.createElement('div'); b.className = 'thumb' + (i === S.cur ? ' active' : ''); b.tabIndex = 0; b.setAttribute('role', 'button');
+    b.setAttribute('aria-label', `${it.name}，第 ${i+1} 張`);
+    const c = document.createElement('canvas'); c.dataset.id = it.id; b.appendChild(c);
+    const n = document.createElement('span'); n.className = 'n'; n.textContent = i+1; b.appendChild(n);
+    const x = document.createElement('button'); x.className = 'x'; x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', '移除 ' + it.name);
+    x.onclick = e => { e.stopPropagation(); removeImage(it.id); }; b.appendChild(x);
+    const pick = () => { S.cur = i; buildStrip(); schedule(false); };
+    b.onclick = pick; b.onkeydown = e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pick(); } };
+    st.appendChild(b);
+  });
+  const add = document.createElement('button'); add.className = 'add-thumb'; add.type = 'button'; add.textContent = '+'; add.setAttribute('aria-label', '加入圖片');
+  add.onclick = () => $('fileInput').click(); st.appendChild(add);
+  renderThumbs();
+}
+function removeImage(id){
+  const i = S.images.findIndex(x => x.id === id); if (i < 0) return;
+  S.images.splice(i, 1);
+  if (!S.images.length){ addSamples(); toast('已清空，先放回範例圖'); }
+  S.cur = Math.min(S.cur, S.images.length - 1);
+  buildStrip(); schedule();
+}
+function addSamples(){
+  S.images.push({ id: ++uid, name: '範例-風景.png', img: sampleLandscape(), w: 1500, h: 1000, sample: true });
+  S.images.push({ id: ++uid, name: '範例-花朵.png', img: samplePortrait(), w: 1000, h: 1300, sample: true });
+}
+async function addFiles(files){
+  const list = [...files].filter(f => f.type.startsWith('image/')); if (!list.length) return;
+  const hadSamples = S.images.some(i => i.sample);
+  const added = [];
+  for (const f of list){
+    try { const im = await loadImg(f); added.push({ id: ++uid, name: f.name, img: im, w: im.naturalWidth, h: im.naturalHeight }); }
+    catch (e){ toast(e.message); }
+  }
+  if (!added.length) return;
+  if (hadSamples) S.images = S.images.filter(i => !i.sample);
+  const start = S.images.length; S.images.push(...added); S.cur = start;
+  $('exportNote').textContent = '';
+  buildStrip(); schedule();
+  toast(`加入 ${added.length} 張圖片`);
+}
+
+/* ---------- drag watermark on preview ---------- */
+let dragging = false;
+function setPosFromEvent(e){
+  const r = pv.getBoundingClientRect();
+  S.wm.pos.x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+  S.wm.pos.y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+  schedule();
+}
+pv.addEventListener('pointerdown', e => {
+  if (!(S.wm.on && S.wm.mode === 'single')) return;
+  dragging = true; pv.setPointerCapture(e.pointerId); pv.classList.add('moving'); setPosFromEvent(e);
+});
+pv.addEventListener('pointermove', e => { if (dragging) setPosFromEvent(e); });
+const endDrag = () => { dragging = false; pv.classList.remove('moving'); };
+pv.addEventListener('pointerup', endDrag); pv.addEventListener('pointercancel', endDrag);
+
+/* ---------- controls wiring ---------- */
+function seg(id, get, set, after){
+  const el = $(id);
+  const sync = () => el.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === get())));
+  el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; set(b.dataset.v); sync(); after && after(); schedule(); });
+  sync(); return sync;
+}
+function slider(id, fmt, set){
+  const el = $(id), v = $(id + 'V');
+  const upd = () => { set(+el.value); v.textContent = fmt(+el.value); };
+  el.addEventListener('input', () => { upd(); schedule(); }); upd();
+}
+
+// tabs
+function showTab(which){
+  $('tabNoise').setAttribute('aria-selected', which === 'noise'); $('tabWm').setAttribute('aria-selected', which === 'wm');
+  $('panelNoise').hidden = which !== 'noise'; $('panelWm').hidden = which !== 'wm';
+}
+$('tabNoise').onclick = () => showTab('noise'); $('tabWm').onclick = () => showTab('wm');
+function dots(){ $('dotNoise').classList.toggle('on', S.noise.on); $('dotWm').classList.toggle('on', S.wm.on); }
+
+// noise
+$('noiseOn').onchange = e => { S.noise.on = e.target.checked; dots(); schedule(); };
+const sws = $('noiseSwatches');
+function buildSwatches(){
+  sws.innerHTML = '';
+  Object.entries(NOISES).forEach(([k, n]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.setAttribute('aria-pressed', S.noise.src === k);
+    const c = mk(80, 80), x = c.getContext('2d'); x.imageSmoothingEnabled = n.smooth;
+    const t = 80 / (n.k === 3 ? 1.6 : n.k === 2 ? 1.4 : 3.2); for (let yy = 0; yy < 80; yy += t) for (let xx = 0; xx < 80; xx += t) x.drawImage(n.tile, xx, yy, t, t);
+    b.appendChild(c); b.append(n.label);
+    b.onclick = () => { S.noise.src = k; buildSwatches(); updNoiseUI(); schedule(); };
+    sws.appendChild(b);
+  });
+  const u = document.createElement('button'); u.type = 'button'; u.className = 'sw'; u.setAttribute('aria-pressed', S.noise.src === 'custom');
+  const d = document.createElement('span'); d.className = 'sw-up';
+  if (S.noise.custom){ const c = mk(80, 80); const x = c.getContext('2d'); const { w, h } = dims(S.noise.custom); const s = Math.max(80/w, 80/h); x.drawImage(S.noise.custom, (80-w*s)/2, (80-h*s)/2, w*s, h*s); u.appendChild(c); }
+  else { d.textContent = '+'; u.appendChild(d); }
+  u.append(S.noise.custom ? '我的雜訊' : '上傳');
+  u.onclick = () => { if (S.noise.custom && S.noise.src !== 'custom'){ S.noise.src = 'custom'; buildSwatches(); updNoiseUI(); schedule(); } else $('noiseFile').click(); };
+  sws.appendChild(u);
+}
+$('noiseFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    S.noise.custom = await loadImg(f); S.noise.customName = f.name; S.noise.src = 'custom'; S.noise.fit = 'cover';
+    syncFit(); buildSwatches(); updNoiseUI(); refreshVisibility(); schedule();
+    DB.put('noise', { blob: f, name: f.name }); toast('已套用並記住你的雜訊圖');
+  }
+  catch (err){ toast(err.message); }
+};
+$('noiseReplace').onclick = () => $('noiseFile').click();
+$('noiseForget').onclick = () => {
+  S.noise.custom = null; S.noise.customName = ''; if (S.noise.src === 'custom'){ S.noise.src = 'fine'; S.noise.fit = 'tile'; syncFit(); }
+  DB.del('noise'); buildSwatches(); updNoiseUI(); refreshVisibility(); schedule(); toast('已移除你的雜訊圖');
+};
+seg('noiseBlend', () => S.noise.blend, v => S.noise.blend = v);
+const syncFit = seg('noiseFit', () => S.noise.fit, v => S.noise.fit = v, () => updNoiseUI());
+function updNoiseUI(){ $('grainField').hidden = S.noise.fit === 'cover'; $('noiseGrain').previousElementSibling.firstChild.textContent = S.noise.src === 'custom' ? '平鋪大小 ' : '顆粒大小 '; }
+slider('noiseOpacity', v => v + '%', v => S.noise.opacity = v/100);
+slider('noiseGrain', v => (v/100).toFixed(2) + '×', v => S.noise.grain = v/100);
+
+// watermark
+$('wmOn').onchange = e => { S.wm.on = e.target.checked; dots(); schedule(); };
+seg('wmSrc', () => S.wm.src, v => S.wm.src = v, () => { $('wmImageField').hidden = S.wm.src !== 'image'; $('wmTextField').hidden = S.wm.src !== 'text'; rebuildWm(); });
+$('wmUploadBtn').onclick = () => $('wmFile').click();
+$('wmFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    S.wm.custom = await loadImg(f); S.wm.customName = f.name; rebuildWm(); refreshVisibility(); schedule();
+    DB.put('wm', { blob: f, name: f.name }); toast('已套用並記住你的浮水印');
+  }
+  catch (err){ toast(err.message); }
+};
+$('wmForget').onclick = () => {
+  S.wm.custom = null; S.wm.customName = ''; DB.del('wm'); rebuildWm(); refreshVisibility(); schedule(); toast('已移除你的浮水印');
+};
+$('wmKnockout').onchange = e => { S.wm.knockout = e.target.checked; rebuildWm(); schedule(); };
+seg('wmTint', () => S.wm.tint, v => S.wm.tint = v, () => { $('wmTintCustomRow').hidden = S.wm.tint !== 'custom'; rebuildWm(); });
+$('wmTintColor').oninput = e => { S.wm.tintColor = e.target.value; rebuildWm(); schedule(); };
+$('wmText').oninput = e => { S.wm.text = e.target.value; rebuildWm(); schedule(); };
+$('wmTextColor').oninput = e => { S.wm.textColor = e.target.value; rebuildWm(); schedule(); };
+slider('wmOpacity', v => v + '%', v => S.wm.opacity = v/100);
+slider('wmSize', v => v + '%', v => S.wm.size = v/100);
+slider('wmRotate', v => v + '°', v => S.wm.rotate = v);
+slider('wmGap', v => v + '%', v => S.wm.gap = v/100);
+$('wmStagger').onchange = e => { S.wm.stagger = e.target.checked; schedule(); };
+seg('wmMode', () => S.wm.mode, v => S.wm.mode = v, () => { $('wmGapField').hidden = S.wm.mode !== 'tile'; $('wmPosField').hidden = S.wm.mode !== 'single'; });
+seg('wmBlend', () => S.wm.blend, v => S.wm.blend = v);
+const g9 = $('grid9');
+[[.12,.12,'左上'],[.5,.12,'上'],[.88,.12,'右上'],[.12,.5,'左'],[.5,.5,'中'],[.88,.5,'右'],[.12,.88,'左下'],[.5,.88,'下'],[.88,.88,'右下']].forEach(([px, py, name]) => {
+  const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', name); b.title = name;
+  b.onclick = () => { S.wm.pos = { x: px, y: py }; schedule(); }; g9.appendChild(b);
+});
+
+// export
+seg('fmt', () => S.out.type, v => S.out.type = v, () => { $('qualityField').hidden = S.out.type === 'image/png'; });
+slider('quality', v => v + '%', v => S.out.quality = v/100);
+$('suffix').oninput = e => { S.out.suffix = e.target.value; saveSettings(); };
+
+/* ---------- saving ---------- */
+const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
+function outName(it){ const base = it.name.replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]/g, '_'); return `${base}${S.out.suffix}.${EXT[S.out.type]}`; }
+function exportBlob(it){
+  return new Promise((res, rej) => {
+    const c = mk(1, 1); renderTo(c, it, it.w, it.h, S.out.type === 'image/jpeg');
+    c.toBlob(b => { c.width = c.height = 1; b ? res(b) : rej(new Error('輸出失敗，圖片可能太大')); }, S.out.type, S.out.quality);
+  });
+}
+async function saveBlob(name, blob){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); return 'saved';
+}
+function busy(on){ ['saveZip','saveOne','saveEach','saveAlbum'].forEach(id => $(id).disabled = on); $('progress').hidden = !on; if (!on) $('progressBar').style.width = '0'; }
+function prog(f){ $('progressBar').style.width = Math.round(f*100) + '%'; }
+function report(r, okMsg){ toast(r === 'declined' ? '已取消存檔' : okMsg); }
+
+$('saveOne').onclick = async () => {
+  const it = S.images[S.cur]; busy(true); prog(.4);
+  try { const b = await exportBlob(it); prog(1); report(await saveBlob(outName(it), b), '已存好 ' + outName(it)); }
+  catch (e){ toast(e.message || '存檔失敗'); } finally { busy(false); }
+};
+$('saveZip').onclick = async () => {
+  if (!window.JSZip){ toast('打包工具還沒載入，請稍後再試，或改用逐張存'); return; }
+  busy(true);
+  try {
+    const zip = new JSZip(), used = new Set();
+    for (let i = 0; i < S.images.length; i++){
+      const it = S.images[i]; $('exportNote').textContent = `處理中 ${i+1} / ${S.images.length}：${it.name}`;
+      let n = outName(it); if (used.has(n)) n = n.replace(/(\.[^.]+)$/, `_${i+1}$1`); used.add(n);
+      zip.file(n, await exportBlob(it)); prog((i+1) / S.images.length * .85);
+    }
+    $('exportNote').textContent = '打包中…';
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' }, m => prog(.85 + m.percent/100*.15));
+    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    report(await saveBlob(`watermarked_${stamp}.zip`, blob), `已打包 ${S.images.length} 張圖片`);
+  } catch (e){ toast(e.message || '打包失敗'); }
+  finally { busy(false); $('exportNote').textContent = ''; }
+};
+/* ---------- save to phone photo album (Web Share API with files) ---------- */
+const canShareFiles = (() => {
+  try { return !!(navigator.share && navigator.canShare && navigator.canShare({ files: [new File(['x'], 'a.png', { type: 'image/png' })] })); }
+  catch (e) { return false; }
+})();
+if (canShareFiles){ $('saveAlbum').hidden = false; $('albumTip').hidden = false; }
+var albumFiles = null;
+function resetAlbum(){ albumFiles = null; $('saveAlbum').textContent = '📱 存到手機相簿'; }
+async function prepareAlbum(){
+  // Photos apps accept PNG/JPG; WebP is saved as JPG here.
+  const type = S.out.type === 'image/webp' ? 'image/jpeg' : S.out.type;
+  const prevType = S.out.type; S.out.type = type;
+  busy(true); const files = [];
+  try {
+    for (let i = 0; i < S.images.length; i++){
+      const it = S.images[i]; $('exportNote').textContent = `準備中 ${i+1} / ${S.images.length}：${it.name}`;
+      files.push(new File([await exportBlob(it)], outName(it), { type }));
+      prog((i+1) / S.images.length);
+    }
+  } finally { S.out.type = prevType; busy(false); $('exportNote').textContent = ''; }
+  if (!navigator.canShare({ files })){ toast('圖片太多或太大，請分批存，或改用 ZIP'); return; }
+  albumFiles = files;
+  $('saveAlbum').textContent = `📱 開啟分享，存 ${files.length} 張到相簿`;
+  toast('準備好了，再按一次按鈕');
+}
+$('saveAlbum').onclick = async () => {
+  if (!albumFiles){ try { await prepareAlbum(); } catch (e){ toast(e.message || '準備失敗'); } return; }
+  const files = albumFiles;
+  try {
+    await navigator.share({ files });   // must run directly inside the tap
+    toast('已開啟分享選單');
+    resetAlbum();
+  } catch (e){
+    if (e && e.name === 'AbortError'){ toast('已取消'); return; }
+    toast('無法開啟分享選單，請改用 ZIP 或逐張下載'); resetAlbum();
+  }
+};
+$('saveEach').onclick = async () => {
+  busy(true); let ok = 0;
+  try {
+    for (let i = 0; i < S.images.length; i++){
+      const it = S.images[i]; $('exportNote').textContent = `第 ${i+1} / ${S.images.length} 張：${outName(it)}`;
+      const r = await saveBlob(outName(it), await exportBlob(it)); if (r === 'saved') ok++;
+      await new Promise(r2 => setTimeout(r2, 450)); // browsers throttle rapid multi-downloads
+      prog((i+1) / S.images.length);
+    }
+    toast(`存好 ${ok} 張`);
+  } catch (e){ toast(e.message || '存檔失敗'); }
+  finally { busy(false); $('exportNote').textContent = ''; }
+};
+
+/* ---------- upload & drop ---------- */
+$('uploadBtn').onclick = () => $('fileInput').click();
+$('fileInput').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+const stage = $('stage');
+['dragenter','dragover'].forEach(t => document.addEventListener(t, e => { if ([...(e.dataTransfer?.types || [])].includes('Files')){ e.preventDefault(); stage.classList.add('drag'); } }));
+['dragleave','drop'].forEach(t => document.addEventListener(t, e => { if (t === 'dragleave' && e.relatedTarget) return; stage.classList.remove('drag'); }));
+document.addEventListener('drop', e => { if (e.dataTransfer?.files?.length){ e.preventDefault(); addFiles(e.dataTransfer.files); } });
+document.addEventListener('paste', e => { const fs = [...(e.clipboardData?.files || [])]; if (fs.length) addFiles(fs); });
+window.addEventListener('resize', () => schedule(false));
+
+/* ---------- boot ---------- */
+if (S.noise.src === 'custom') S.noise.src = 'fine';   // until the saved image loads
+const wantCustomNoise = (() => { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}').noise?.src === 'custom'; } catch (e) { return false; } })();
+addSamples(); rebuildWm(); buildSwatches(); updNoiseUI(); dots(); refreshVisibility(); buildStrip(); schedule(false);
+(async () => {
+  const [n, w] = await Promise.all([DB.get('noise'), DB.get('wm')]);
+  let changed = false;
+  if (n && n.blob){ try { S.noise.custom = await blobToImg(n.blob); S.noise.customName = n.name; if (wantCustomNoise) S.noise.src = 'custom'; changed = true; } catch (e) {} }
+  if (w && w.blob){ try { S.wm.custom = await blobToImg(w.blob); S.wm.customName = w.name; changed = true; } catch (e) {} }
+  if (changed){ rebuildWm(); buildSwatches(); syncFit(); updNoiseUI(); refreshVisibility(); schedule(); toast('已載入你上次的雜訊圖與浮水印'); }
+})();
+$('exportNote').textContent = '目前是範例圖。按「加入圖片」或把圖拖進來，範例會自動移除。';
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { rebuildWm(); schedule(); });
+})();
+</script>
+</body>
+</html>
