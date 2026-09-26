@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="免費線上浮水印工具：雜訊覆蓋（Overlay）＋個人浮水印，支援批量處理與打包下載。圖片只在你的瀏覽器處理，不會上傳。">
-<title>浮水印工坊</title>
+<title>委圖用浮水印工坊</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
@@ -72,6 +72,7 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .upload-btn{margin-left:auto}
 
 .main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+@media (min-width:901px){.stage-card{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}}
 @media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}.upload-btn{margin-left:0}}
 
 .card{background:var(--surface);border:1.5px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}
@@ -169,6 +170,18 @@ input[type=color]{width:44px;height:38px;border:1.5px solid var(--line);border-r
   background-color:var(--check-b);background-image:linear-gradient(45deg,var(--check-a) 25%,transparent 25%,transparent 75%,var(--check-a) 75%),linear-gradient(45deg,var(--check-a) 25%,transparent 25%,transparent 75%,var(--check-a) 75%);
   background-size:12px 12px;background-position:0 0,6px 6px}
 .wm-prev canvas{max-width:92%;max-height:88%}
+.seg-wide{display:grid;grid-template-columns:1fr 1fr}
+.seg-wide button{padding:8px 10px}
+.mode-card{gap:12px}
+.font-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.font-opt{border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:14px;padding:9px 10px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;min-width:0}
+.font-opt .fn{font-size:19px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.font-opt .ft{font-size:11px;color:var(--ink-soft);font-family:var(--font)}
+.font-opt .ft.zh{color:var(--accent-strong)}
+.font-opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px var(--accent-soft)}
+.font-opt:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.panel.separate .tabs{border-color:var(--accent)}
 .divider{height:1.5px;background:var(--line);border-radius:2px}
 .muted{color:var(--ink-soft);font-size:12.5px;margin:0}
 .saved{color:var(--accent-strong);font-size:12.5px;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -196,7 +209,7 @@ footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding-top:6px}
       <path d="M51 10l1.6 3.6 3.6 1.6-3.6 1.6L51 20.4l-1.6-3.6-3.6-1.6 3.6-1.6z" fill="var(--accent-strong)"/>
     </svg>
     <div class="brand">
-      <h1><span>浮水印工坊</span></h1>
+      <h1><span>委圖用浮水印工坊</span></h1>
       <p>雜訊覆蓋 × 個人浮水印，一次處理整批圖片</p>
       <p class="author">作者：懶人阿暝</p>
     </div>
@@ -218,6 +231,15 @@ footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding-top:6px}
     </section>
 
     <aside class="panel">
+      <div class="card section mode-card">
+        <div class="sec-head"><h2>批量方式<small>多張圖要一起調，還是一張一張調</small></h2></div>
+        <div class="seg seg-wide" id="applyMode">
+          <button type="button" data-v="sync">全部同步</button>
+          <button type="button" data-v="each">每張分開</button>
+        </div>
+        <p class="muted" id="modeNote"></p>
+        <button class="btn btn-soft" type="button" id="applyAll" hidden>把這張的設定套用到全部</button>
+      </div>
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" id="tabNoise" aria-selected="true" aria-controls="panelNoise"><i class="dot" id="dotNoise"></i>雜訊覆蓋</button>
         <button class="tab" role="tab" id="tabWm" aria-selected="false" aria-controls="panelWm"><i class="dot" id="dotWm"></i>個人浮水印</button>
@@ -301,7 +323,15 @@ footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding-top:6px}
           <label for="wmText">浮水印文字</label>
           <div class="inline">
             <input type="text" id="wmText" value="© 我的作品 ✦">
-            <input type="color" id="wmTextColor" value="#ffffff" aria-label="文字顏色">
+            <input type="color" id="wmTextColor" value="#ffffff" aria-label="文字顏色" title="文字顏色">
+          </div>
+          <div class="lbl">字體</div>
+          <div class="seg" id="fontCats"></div>
+          <div class="font-grid" id="fontGrid"></div>
+          <p class="muted">標「英文」的字體遇到中文字時，會自動改用圓體顯示中文。</p>
+          <div class="inline">
+            <label class="check" style="flex:1"><input type="checkbox" id="wmStroke"> 加外框（深色圖上更清楚）</label>
+            <input type="color" id="wmStrokeColor" value="#9a7ed6" aria-label="外框顏色" title="外框顏色" hidden>
           </div>
         </div>
 
@@ -335,7 +365,7 @@ footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding-top:6px}
           <div class="lbl">快速定位</div>
           <div class="pos-wrap">
             <div class="grid9" id="grid9"></div>
-            <p>也可以直接在左邊預覽圖上拖曳。位置以比例記錄，整批圖片都會放在同樣的相對位置。</p>
+            <p>也可以直接在預覽圖上拖曳。位置以比例記錄，大小不同的圖也會放在相同的相對位置。</p>
           </div>
         </div>
         <div class="field">
@@ -391,12 +421,16 @@ const $ = id => document.getElementById(id);
 /* ---------- state ---------- */
 const S = {
   images: [], cur: 0,
-  noise: { on: true, src: 'fine', custom: null, customName: '', blend: 'overlay', opacity: .35, fit: 'tile', grain: 1 },
-  wm: { on: true, src: 'image', custom: null, customName: '', knockout: false, tint: 'none', tintColor: '#9a7ed6',
-        text: '© 我的作品 ✦', textColor: '#ffffff', opacity: .55, size: .28, rotate: -20,
+  noise: { on: true, src: 'fine', blend: 'overlay', opacity: .35, fit: 'tile', grain: 1 },
+  wm: { on: true, src: 'image', knockout: false, tint: 'none', tintColor: '#9a7ed6',
+        text: '© 我的作品 ✦', textColor: '#ffffff', font: 'Huninn', stroke: false, strokeColor: '#9a7ed6', opacity: .55, size: .28, rotate: -20,
         mode: 'tile', gap: .7, stagger: true, pos: { x: .78, y: .86 }, blend: 'source-over' },
-  out: { type: 'image/png', quality: .92, suffix: '_wm' }
+  out: { type: 'image/png', quality: .92, suffix: '_wm' },
+  sync: true
 };
+/* user-provided assets, shared by every image */
+const A = { noise: null, noiseName: '', wm: null, wmName: '', ver: 0 };
+const clone = o => JSON.parse(JSON.stringify(o));
 let uid = 0;
 
 /* ---------- helpers ---------- */
@@ -436,9 +470,10 @@ function loadSettings(){
   try {
     const raw = localStorage.getItem(LS_KEY); if (!raw) return;
     const d = JSON.parse(raw);
-    if (d.noise) Object.assign(S.noise, d.noise, { custom: null });
-    if (d.wm) Object.assign(S.wm, d.wm, { custom: null, pos: Object.assign({}, S.wm.pos, d.wm.pos) });
+    if (d.noise) Object.assign(S.noise, d.noise);
+    if (d.wm) Object.assign(S.wm, d.wm, { pos: Object.assign({}, S.wm.pos, d.wm.pos) });
     if (d.out) Object.assign(S.out, d.out);
+    if (typeof d.sync === 'boolean') S.sync = d.sync;
   } catch (e) {}
 }
 let saveT = 0;
@@ -446,8 +481,7 @@ function saveSettings(){
   clearTimeout(saveT);
   saveT = setTimeout(() => {
     try {
-      const strip = o => { const c = Object.assign({}, o); delete c.custom; return c; };
-      localStorage.setItem(LS_KEY, JSON.stringify({ noise: strip(S.noise), wm: strip(S.wm), out: S.out }));
+      localStorage.setItem(LS_KEY, JSON.stringify({ noise: S.noise, wm: S.wm, out: S.out, sync: S.sync }));
     } catch (e) {}
   }, 300);
 }
@@ -459,18 +493,19 @@ function applyControlsFromState(){
   set('noiseOpacity', Math.round(S.noise.opacity*100)); set('noiseGrain', Math.round(S.noise.grain*100));
   set('wmOpacity', Math.round(S.wm.opacity*100)); set('wmSize', Math.round(S.wm.size*100));
   set('wmRotate', S.wm.rotate); set('wmGap', Math.round(S.wm.gap*100)); set('quality', Math.round(S.out.quality*100));
-  set('wmText', S.wm.text); set('wmTextColor', S.wm.textColor); set('wmTintColor', S.wm.tintColor); set('suffix', S.out.suffix);
+  set('wmText', S.wm.text); set('wmTextColor', S.wm.textColor); set('wmStrokeColor', S.wm.strokeColor); $('wmStroke').checked = S.wm.stroke; set('wmTintColor', S.wm.tintColor); set('suffix', S.out.suffix);
   $('noiseOn').checked = S.noise.on; $('wmOn').checked = S.wm.on; $('wmKnockout').checked = S.wm.knockout; $('wmStagger').checked = S.wm.stagger;
 }
 function refreshVisibility(){
   $('wmImageField').hidden = S.wm.src !== 'image'; $('wmTextField').hidden = S.wm.src !== 'text';
   $('wmTintCustomRow').hidden = S.wm.tint !== 'custom';
+  $('wmStrokeColor').hidden = !S.wm.stroke;
   $('wmGapField').hidden = S.wm.mode !== 'tile'; $('wmPosField').hidden = S.wm.mode !== 'single';
   $('qualityField').hidden = S.out.type === 'image/png';
-  $('noiseSaved').hidden = !S.noise.custom;
-  if (S.noise.custom) $('noiseSavedName').textContent = '✓ 已記住：' + (S.noise.customName || '我的雜訊圖');
-  $('wmSaved').hidden = !S.wm.custom;
-  $('wmFileName').textContent = S.wm.custom ? (S.wm.customName || '我的浮水印') : '尚未上傳，先顯示範例';
+  $('noiseSaved').hidden = !A.noise;
+  if (A.noise) $('noiseSavedName').textContent = '✓ 已記住：' + (A.noiseName || '我的雜訊圖');
+  $('wmSaved').hidden = !A.wm;
+  $('wmFileName').textContent = A.wm ? (A.wmName || '我的浮水印') : '尚未上傳，先顯示範例';
 }
 loadSettings();
 applyControlsFromState();
@@ -537,38 +572,96 @@ function sampleWatermark(){
   x.moveTo(cx, cy-s); x.quadraticCurveTo(cx, cy, cx+s, cy); x.quadraticCurveTo(cx, cy, cx, cy+s); x.quadraticCurveTo(cx, cy, cx-s, cy); x.quadraticCurveTo(cx, cy, cx, cy-s); x.fill();
   return c;
 }
-function textWatermark(){
-  const x0 = mk(10, 10).getContext('2d'); const f = '600 140px Fredoka, Huninn, "Zen Maru Gothic", sans-serif';
-  x0.font = f; const t = S.wm.text || ' '; const w = x0.measureText(t).width;
-  const c = mk(w + 60, 200), x = c.getContext('2d'); x.font = f; x.fillStyle = S.wm.textColor; x.textBaseline = 'middle'; x.fillText(t, 30, 104);
+const FONTS = [
+  { f: 'Huninn', n: '粉圓體', cat: 'cute', zh: 2 },
+  { f: 'Chiron GoRound TC', n: '昭源甜圓', cat: 'cute', zh: 2, w: 600 },
+  { f: 'Hachi Maru Pop', n: 'はちまるポップ', cat: 'cute', zh: 1 },
+  { f: 'Mochiy Pop One', n: 'Mochiy Pop', cat: 'cute', zh: 1 },
+  { f: 'Cherry Bomb One', n: 'Cherry Bomb', cat: 'cute', zh: 0 },
+  { f: 'Fredoka', n: 'Fredoka', cat: 'cute', zh: 0, w: 600 },
+  { f: 'Chewy', n: 'Chewy', cat: 'cute', zh: 0 },
+  { f: 'Sniglet', n: 'Sniglet', cat: 'cute', zh: 0, w: 800 },
+  { f: 'LXGW WenKai TC', n: '霞鶩文楷', cat: 'hand', zh: 2 },
+  { f: 'Iansui', n: '芫荽', cat: 'hand', zh: 2 },
+  { f: 'Klee One', n: 'Klee 鉛筆', cat: 'hand', zh: 1, w: 600 },
+  { f: 'Yomogi', n: 'よもぎ', cat: 'hand', zh: 1 },
+  { f: 'Zen Kurenaido', n: '紅道毛筆', cat: 'hand', zh: 1 },
+  { f: 'Caveat', n: 'Caveat', cat: 'hand', zh: 0, w: 700 },
+  { f: 'Patrick Hand', n: 'Patrick Hand', cat: 'hand', zh: 0 },
+  { f: 'Indie Flower', n: 'Indie Flower', cat: 'hand', zh: 0 },
+  { f: 'Gaegu', n: 'Gaegu', cat: 'hand', zh: 0, w: 700 },
+  { f: 'Pacifico', n: 'Pacifico', cat: 'sign', zh: 0 },
+  { f: 'Dancing Script', n: 'Dancing Script', cat: 'sign', zh: 0, w: 700 },
+  { f: 'Sacramento', n: 'Sacramento', cat: 'sign', zh: 0 },
+  { f: 'Great Vibes', n: 'Great Vibes', cat: 'sign', zh: 0 },
+  { f: 'Satisfy', n: 'Satisfy', cat: 'sign', zh: 0 },
+  { f: 'Yusei Magic', n: '麥克筆', cat: 'fun', zh: 1 },
+  { f: 'DotGothic16', n: '像素點陣', cat: 'fun', zh: 1 },
+  { f: 'Reggae One', n: 'Reggae', cat: 'fun', zh: 1 },
+  { f: 'RocknRoll One', n: 'RocknRoll', cat: 'fun', zh: 1 }
+];
+const FONT_CATS = { cute: '可愛', hand: '手寫', sign: '英文簽名', fun: '特殊' };
+const ZH_TAG = ['英文', '部分中文', '中文'];
+FONTS.forEach(ft => {  // one stylesheet per family so a single failure can't block the rest
+  const l = document.createElement('link'); l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=' + ft.f.replace(/ /g, '+') + (ft.w ? ':wght@' + ft.w : '') + '&display=swap';
+  document.head.appendChild(l);
+});
+const fontOf = name => FONTS.find(ft => ft.f === name) || FONTS[0];
+const fontCss = (ft, px) => `${ft.w || 400} ${px}px "${ft.f}", "Huninn", "Zen Maru Gothic", sans-serif`;
+const pendingFonts = new Set();
+function textWatermark(m){
+  const ft = fontOf(m.font), px = 160, font = fontCss(ft, px), t = m.text || ' ';
+  if (document.fonts && !document.fonts.check(font, t) && !pendingFonts.has(font + t)){
+    pendingFonts.add(font + t);
+    document.fonts.load(font, t).then(() => { wmCache.clear(); rebuildWm(); schedule(); }).catch(() => {});
+  }
+  const x0 = mk(10, 10).getContext('2d'); x0.font = font;
+  const me = x0.measureText(t);
+  const asc = me.actualBoundingBoxAscent || px * .8, desc = me.actualBoundingBoxDescent || px * .25;
+  const left = me.actualBoundingBoxLeft || 0, right = me.actualBoundingBoxRight || me.width;
+  const sw = m.stroke ? 16 : 0, pad = 20 + sw;
+  const c = mk(left + right + pad*2, asc + desc + pad*2), x = c.getContext('2d');
+  x.font = font; x.textBaseline = 'alphabetic';
+  const ox = pad + left, oy = pad + asc;
+  if (m.stroke){ x.lineJoin = 'round'; x.lineWidth = sw * 2; x.strokeStyle = m.strokeColor; x.strokeText(t, ox, oy); }
+  x.fillStyle = m.textColor; x.fillText(t, ox, oy);
   return c;
 }
-let wmSource = null;
-function rebuildWm(){
-  if (S.wm.src === 'text'){ wmSource = textWatermark(); }
-  else {
-    const base = S.wm.custom || sampleWatermark();
-    const { w, h } = dims(base);
-    const scale = Math.min(1, 2400 / Math.max(w, h));
-    const c = mk(w*scale, h*scale), x = c.getContext('2d');
-    x.drawImage(base, 0, 0, c.width, c.height);
-    if (S.wm.knockout){
-      const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
-      for (let i = 0; i < p.length; i += 4){ const m = Math.min(p[i], p[i+1], p[i+2]); const k = Math.max(0, Math.min(1, (250 - m) / 45)); p[i+3] *= k; }
-      x.putImageData(d, 0, 0);
-    }
-    const tint = S.wm.tint === 'custom' ? S.wm.tintColor : S.wm.tint;
-    if (tint !== 'none'){ x.globalCompositeOperation = 'source-in'; x.fillStyle = tint; x.fillRect(0, 0, c.width, c.height); }
-    wmSource = c;
+function imageWatermark(m){
+  const base = A.wm || sampleWatermark();
+  const { w, h } = dims(base);
+  const scale = Math.min(1, 2400 / Math.max(w, h));
+  const c = mk(w*scale, h*scale), x = c.getContext('2d');
+  x.drawImage(base, 0, 0, c.width, c.height);
+  if (m.knockout){
+    const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+    for (let i = 0; i < p.length; i += 4){ const mn = Math.min(p[i], p[i+1], p[i+2]); const k = Math.max(0, Math.min(1, (250 - mn) / 45)); p[i+3] *= k; }
+    x.putImageData(d, 0, 0);
   }
-  const box = $('wmPrevBox'); box.innerHTML = ''; const pv = mk(wmSource.width, wmSource.height); pv.getContext('2d').drawImage(wmSource, 0, 0); box.appendChild(pv);
+  const tint = m.tint === 'custom' ? m.tintColor : m.tint;
+  if (tint !== 'none'){ x.globalCompositeOperation = 'source-in'; x.fillStyle = tint; x.fillRect(0, 0, c.width, c.height); }
+  return c;
+}
+const wmCache = new Map();
+function wmSourceFor(m){
+  const key = m.src === 'text'
+    ? ['t', m.text, m.font, m.textColor, m.stroke, m.strokeColor].join('|')
+    : ['i', A.ver, m.knockout, m.tint, m.tintColor].join('|');
+  let c = wmCache.get(key);
+  if (!c){ c = m.src === 'text' ? textWatermark(m) : imageWatermark(m); if (wmCache.size > 40) wmCache.clear(); wmCache.set(key, c); }
+  return c;
+}
+function rebuildWm(){
+  const src = wmSourceFor(S.wm);
+  const box = $('wmPrevBox'); box.innerHTML = ''; const c = mk(src.width, src.height); c.getContext('2d').drawImage(src, 0, 0); box.appendChild(c);
 }
 
 /* ---------- rendering pipeline (resolution independent) ---------- */
-function drawNoise(x, W, H){
-  const n = S.noise; if (!n.on || n.opacity <= 0) return;
+function drawNoise(x, W, H, n){
+  if (!n.on || n.opacity <= 0) return;
   const custom = n.src === 'custom';
-  const src = custom ? n.custom : NOISES[n.src].tile; if (!src) return;
+  const src = custom ? A.noise : NOISES[n.src].tile; if (!src) return;
   const { w: sw, h: sh } = dims(src);
   x.save(); x.globalAlpha = n.opacity; x.globalCompositeOperation = n.blend;
   if (n.fit === 'cover'){
@@ -582,8 +675,9 @@ function drawNoise(x, W, H){
   }
   x.restore();
 }
-function drawWm(x, W, H){
-  const m = S.wm; if (!m.on || !wmSource || m.opacity <= 0) return;
+function drawWm(x, W, H, m){
+  if (!m.on || m.opacity <= 0) return;
+  const wmSource = wmSourceFor(m);
   const ww = m.size * Math.min(W, H), wh = ww * wmSource.height / wmSource.width;
   const rot = m.rotate * Math.PI / 180;
   x.save(); x.globalAlpha = m.opacity; x.globalCompositeOperation = m.blend; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
@@ -601,14 +695,16 @@ function drawWm(x, W, H){
   }
   x.restore();
 }
+function cfgOf(item){ return (!S.sync && item.cfg) ? item.cfg : { noise: S.noise, wm: S.wm }; }
 function renderTo(canvas, item, W, H, opaqueBg){
   canvas.width = Math.max(1, Math.round(W)); canvas.height = Math.max(1, Math.round(H));
   const x = canvas.getContext('2d');
   x.clearRect(0, 0, canvas.width, canvas.height);
   if (opaqueBg){ x.fillStyle = '#ffffff'; x.fillRect(0, 0, canvas.width, canvas.height); }
   x.drawImage(item.img, 0, 0, canvas.width, canvas.height);
-  drawNoise(x, canvas.width, canvas.height);
-  drawWm(x, canvas.width, canvas.height);
+  const cfg = cfgOf(item);
+  drawNoise(x, canvas.width, canvas.height, cfg.noise);
+  drawWm(x, canvas.width, canvas.height, cfg.wm);
 }
 
 /* ---------- preview ---------- */
@@ -647,7 +743,7 @@ function buildStrip(){
     const n = document.createElement('span'); n.className = 'n'; n.textContent = i+1; b.appendChild(n);
     const x = document.createElement('button'); x.className = 'x'; x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', '移除 ' + it.name);
     x.onclick = e => { e.stopPropagation(); removeImage(it.id); }; b.appendChild(x);
-    const pick = () => { S.cur = i; buildStrip(); schedule(false); };
+    const pick = () => { S.cur = i; if (!S.sync) bindCurrent(); buildStrip(); schedule(false); updModeUI(); };
     b.onclick = pick; b.onkeydown = e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pick(); } };
     st.appendChild(b);
   });
@@ -660,7 +756,7 @@ function removeImage(id){
   S.images.splice(i, 1);
   if (!S.images.length){ addSamples(); toast('已清空，先放回範例圖'); }
   S.cur = Math.min(S.cur, S.images.length - 1);
-  buildStrip(); schedule();
+  ensureCfgs(); buildStrip(); schedule(); updModeUI();
 }
 function addSamples(){
   S.images.push({ id: ++uid, name: '範例-風景.png', img: sampleLandscape(), w: 1500, h: 1000, sample: true });
@@ -677,9 +773,46 @@ async function addFiles(files){
   if (!added.length) return;
   if (hadSamples) S.images = S.images.filter(i => !i.sample);
   const start = S.images.length; S.images.push(...added); S.cur = start;
+  ensureCfgs();
   $('exportNote').textContent = '';
-  buildStrip(); schedule();
+  buildStrip(); schedule(); updModeUI();
   toast(`加入 ${added.length} 張圖片`);
+}
+
+/* ---------- batch mode: all in sync, or each image separately ---------- */
+const syncers = [], refreshers = [];
+function ensureCfgs(){
+  if (S.sync) return;
+  const tpl = { noise: clone(S.noise), wm: clone(S.wm) };
+  S.images.forEach(it => { if (!it.cfg) it.cfg = clone(tpl); });
+  bindCurrent();
+}
+function bindCurrent(){
+  const it = S.images[S.cur]; if (!it || !it.cfg) return;
+  S.noise = it.cfg.noise; S.wm = it.cfg.wm;
+  applyControlsFromState(); syncers.forEach(f => f()); refreshers.forEach(f => f());
+  refreshVisibility(); updNoiseUI(); buildSwatches(); buildFontGrid(); rebuildWm(); dots();
+}
+function setBatchMode(sync){
+  if (sync === S.sync) return;
+  if (sync){
+    S.noise = clone(S.noise); S.wm = clone(S.wm);
+    S.images.forEach(it => delete it.cfg); S.sync = true;
+    toast(`已改成全部同步，套用第 ${S.cur+1} 張的設定`);
+  } else {
+    S.sync = false; S.images.forEach(it => delete it.cfg); ensureCfgs();
+    toast('已改成每張分開，點下方縮圖切換要編輯的圖');
+  }
+  updModeUI(); schedule();
+}
+function updModeUI(){
+  $('applyMode').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.v === 'sync') === S.sync)));
+  $('applyAll').hidden = S.sync || S.images.length < 2;
+  const it = S.images[S.cur];
+  $('modeNote').textContent = S.sync
+    ? `調整的設定會同時套用到全部 ${S.images.length} 張圖。`
+    : `正在編輯第 ${S.cur+1} 張${it ? '（' + it.name + '）' : ''}，點下方縮圖切換。`;
+  document.querySelector('.panel').classList.toggle('separate', !S.sync);
 }
 
 /* ---------- drag watermark on preview ---------- */
@@ -703,12 +836,13 @@ function seg(id, get, set, after){
   const el = $(id);
   const sync = () => el.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === get())));
   el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; set(b.dataset.v); sync(); after && after(); schedule(); });
-  sync(); return sync;
+  sync(); syncers.push(sync); return sync;
 }
 function slider(id, fmt, set){
   const el = $(id), v = $(id + 'V');
   const upd = () => { set(+el.value); v.textContent = fmt(+el.value); };
   el.addEventListener('input', () => { upd(); schedule(); }); upd();
+  refreshers.push(() => { v.textContent = fmt(+el.value); });
 }
 
 // tabs
@@ -734,16 +868,16 @@ function buildSwatches(){
   });
   const u = document.createElement('button'); u.type = 'button'; u.className = 'sw'; u.setAttribute('aria-pressed', S.noise.src === 'custom');
   const d = document.createElement('span'); d.className = 'sw-up';
-  if (S.noise.custom){ const c = mk(80, 80); const x = c.getContext('2d'); const { w, h } = dims(S.noise.custom); const s = Math.max(80/w, 80/h); x.drawImage(S.noise.custom, (80-w*s)/2, (80-h*s)/2, w*s, h*s); u.appendChild(c); }
+  if (A.noise){ const c = mk(80, 80); const x = c.getContext('2d'); const { w, h } = dims(A.noise); const s = Math.max(80/w, 80/h); x.drawImage(A.noise, (80-w*s)/2, (80-h*s)/2, w*s, h*s); u.appendChild(c); }
   else { d.textContent = '+'; u.appendChild(d); }
-  u.append(S.noise.custom ? '我的雜訊' : '上傳');
-  u.onclick = () => { if (S.noise.custom && S.noise.src !== 'custom'){ S.noise.src = 'custom'; buildSwatches(); updNoiseUI(); schedule(); } else $('noiseFile').click(); };
+  u.append(A.noise ? '我的雜訊' : '上傳');
+  u.onclick = () => { if (A.noise && S.noise.src !== 'custom'){ S.noise.src = 'custom'; buildSwatches(); updNoiseUI(); schedule(); } else $('noiseFile').click(); };
   sws.appendChild(u);
 }
 $('noiseFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
-    S.noise.custom = await loadImg(f); S.noise.customName = f.name; S.noise.src = 'custom'; S.noise.fit = 'cover';
+    A.noise = await loadImg(f); A.noiseName = f.name; S.noise.src = 'custom'; S.noise.fit = 'cover';
     syncFit(); buildSwatches(); updNoiseUI(); refreshVisibility(); schedule();
     DB.put('noise', { blob: f, name: f.name }); toast('已套用並記住你的雜訊圖');
   }
@@ -751,7 +885,7 @@ $('noiseFile').onchange = async e => {
 };
 $('noiseReplace').onclick = () => $('noiseFile').click();
 $('noiseForget').onclick = () => {
-  S.noise.custom = null; S.noise.customName = ''; if (S.noise.src === 'custom'){ S.noise.src = 'fine'; S.noise.fit = 'tile'; syncFit(); }
+  A.noise = null; A.noiseName = ''; if (S.noise.src === 'custom'){ S.noise.src = 'fine'; S.noise.fit = 'tile'; syncFit(); }
   DB.del('noise'); buildSwatches(); updNoiseUI(); refreshVisibility(); schedule(); toast('已移除你的雜訊圖');
 };
 seg('noiseBlend', () => S.noise.blend, v => S.noise.blend = v);
@@ -767,13 +901,13 @@ $('wmUploadBtn').onclick = () => $('wmFile').click();
 $('wmFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
-    S.wm.custom = await loadImg(f); S.wm.customName = f.name; rebuildWm(); refreshVisibility(); schedule();
+    A.wm = await loadImg(f); A.wmName = f.name; A.ver++; rebuildWm(); refreshVisibility(); schedule();
     DB.put('wm', { blob: f, name: f.name }); toast('已套用並記住你的浮水印');
   }
   catch (err){ toast(err.message); }
 };
 $('wmForget').onclick = () => {
-  S.wm.custom = null; S.wm.customName = ''; DB.del('wm'); rebuildWm(); refreshVisibility(); schedule(); toast('已移除你的浮水印');
+  A.wm = null; A.wmName = ''; A.ver++; DB.del('wm'); rebuildWm(); refreshVisibility(); schedule(); toast('已移除你的浮水印');
 };
 $('wmKnockout').onchange = e => { S.wm.knockout = e.target.checked; rebuildWm(); schedule(); };
 seg('wmTint', () => S.wm.tint, v => S.wm.tint = v, () => { $('wmTintCustomRow').hidden = S.wm.tint !== 'custom'; rebuildWm(); });
@@ -792,6 +926,36 @@ const g9 = $('grid9');
   const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', name); b.title = name;
   b.onclick = () => { S.wm.pos = { x: px, y: py }; schedule(); }; g9.appendChild(b);
 });
+
+// text watermark: font + outline
+let fontCat = fontOf(S.wm.font).cat;
+function buildFontGrid(){
+  const cats = $('fontCats'); cats.innerHTML = '';
+  Object.entries(FONT_CATS).forEach(([k, label]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.v = k; b.textContent = label;
+    b.setAttribute('aria-pressed', String(k === fontCat));
+    b.onclick = () => { fontCat = k; buildFontGrid(); }; cats.appendChild(b);
+  });
+  const g = $('fontGrid'); g.innerHTML = '';
+  FONTS.filter(ft => ft.cat === fontCat).forEach(ft => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'font-opt'; b.setAttribute('aria-pressed', String(ft.f === S.wm.font));
+    const n = document.createElement('span'); n.className = 'fn'; n.textContent = ft.n; n.style.fontFamily = `"${ft.f}", var(--font)`; n.style.fontWeight = ft.w || 400;
+    const t = document.createElement('span'); t.className = 'ft' + (ft.zh === 2 ? ' zh' : ''); t.textContent = ZH_TAG[ft.zh];
+    b.append(n, t);
+    b.onclick = () => { S.wm.font = ft.f; buildFontGrid(); rebuildWm(); schedule(); };
+    g.appendChild(b);
+  });
+}
+$('wmStroke').onchange = e => { S.wm.stroke = e.target.checked; $('wmStrokeColor').hidden = !S.wm.stroke; rebuildWm(); schedule(); };
+$('wmStrokeColor').oninput = e => { S.wm.strokeColor = e.target.value; rebuildWm(); schedule(); };
+
+// batch mode
+$('applyMode').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setBatchMode(b.dataset.v === 'sync'); });
+$('applyAll').onclick = () => {
+  const src = S.images[S.cur].cfg;
+  S.images.forEach(it => { if (it !== S.images[S.cur]) it.cfg = clone(src); });
+  schedule(); toast(`已把第 ${S.cur+1} 張的設定套用到其他 ${S.images.length - 1} 張`);
+};
 
 // export
 seg('fmt', () => S.out.type, v => S.out.type = v, () => { $('qualityField').hidden = S.out.type === 'image/png'; });
@@ -901,16 +1065,16 @@ window.addEventListener('resize', () => schedule(false));
 /* ---------- boot ---------- */
 if (S.noise.src === 'custom') S.noise.src = 'fine';   // until the saved image loads
 const wantCustomNoise = (() => { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}').noise?.src === 'custom'; } catch (e) { return false; } })();
-addSamples(); rebuildWm(); buildSwatches(); updNoiseUI(); dots(); refreshVisibility(); buildStrip(); schedule(false);
+addSamples(); ensureCfgs(); rebuildWm(); buildSwatches(); buildFontGrid(); updNoiseUI(); dots(); refreshVisibility(); updModeUI(); buildStrip(); schedule(false);
 (async () => {
   const [n, w] = await Promise.all([DB.get('noise'), DB.get('wm')]);
   let changed = false;
-  if (n && n.blob){ try { S.noise.custom = await blobToImg(n.blob); S.noise.customName = n.name; if (wantCustomNoise) S.noise.src = 'custom'; changed = true; } catch (e) {} }
-  if (w && w.blob){ try { S.wm.custom = await blobToImg(w.blob); S.wm.customName = w.name; changed = true; } catch (e) {} }
-  if (changed){ rebuildWm(); buildSwatches(); syncFit(); updNoiseUI(); refreshVisibility(); schedule(); toast('已載入你上次的雜訊圖與浮水印'); }
+  if (n && n.blob){ try { A.noise = await blobToImg(n.blob); A.noiseName = n.name; if (wantCustomNoise) S.noise.src = 'custom'; changed = true; } catch (e) {} }
+  if (w && w.blob){ try { A.wm = await blobToImg(w.blob); A.wmName = w.name; changed = true; } catch (e) {} }
+  if (changed){ A.ver++; wmCache.clear(); rebuildWm(); buildSwatches(); syncFit(); updNoiseUI(); refreshVisibility(); schedule(); toast('已載入你上次的雜訊圖與浮水印'); }
 })();
 $('exportNote').textContent = '目前是範例圖。按「加入圖片」或把圖拖進來，範例會自動移除。';
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { rebuildWm(); schedule(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { wmCache.clear(); rebuildWm(); schedule(); });
 })();
 </script>
 </body>
