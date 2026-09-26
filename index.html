@@ -182,6 +182,33 @@ input[type=color]{width:44px;height:38px;border:1.5px solid var(--line);border-r
 .font-opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px var(--accent-soft)}
 .font-opt:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .panel.separate .tabs{border-color:var(--accent)}
+.layers{display:flex;flex-direction:column;gap:6px}
+.layer{display:flex;align-items:center;gap:10px;padding:6px 8px;border:1.5px solid var(--line);border-radius:14px;background:var(--surface-2);cursor:pointer;min-width:0}
+.layer.sel{border-color:var(--accent);background:var(--accent-soft)}
+.layer.off .lthumb,.layer.off .lname{opacity:.45}
+.lthumb{width:54px;height:36px;flex:none;border-radius:8px;display:grid;place-items:center;overflow:hidden;
+  background-color:var(--check-b);background-image:linear-gradient(45deg,var(--check-a) 25%,transparent 25%,transparent 75%,var(--check-a) 75%),linear-gradient(45deg,var(--check-a) 25%,transparent 25%,transparent 75%,var(--check-a) 75%);
+  background-size:10px 10px;background-position:0 0,5px 5px}
+.lthumb canvas{max-width:90%;max-height:85%}
+.lname{flex:1;min-width:0;font-size:13.5px;line-height:1.3}
+.lname b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lname span{font-size:11.5px;color:var(--ink-soft)}
+.icon-btn{width:30px;height:30px;flex:none;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:grid;place-items:center;padding:0}
+.icon-btn:hover{background:var(--accent-soft)}
+.icon-btn svg{width:16px;height:16px}
+.icon-btn:focus-visible,.layer:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.editing{font-size:13px;color:var(--accent-strong);background:var(--accent-soft);border-radius:10px;padding:6px 10px}
+.wm-lib{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.lib-item{position:relative;aspect-ratio:1;max-width:100%;border:2px solid var(--line);border-radius:12px;cursor:pointer;padding:0;display:grid;place-items:center;overflow:hidden;
+  background-color:var(--check-b);background-image:linear-gradient(45deg,var(--check-a) 25%,transparent 25%,transparent 75%,var(--check-a) 75%),linear-gradient(45deg,var(--check-a) 25%,transparent 25%,transparent 75%,var(--check-a) 75%);
+  background-size:10px 10px;background-position:0 0,5px 5px}
+.lib-item.sample{background:var(--accent)}
+.lib-item canvas{max-width:86%;max-height:86%}
+.lib-item[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.lib-item .x{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;border:none;background:var(--surface);color:var(--ink);font-size:13px;line-height:20px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);padding:0}
+.lib-item:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.lib-add{aspect-ratio:1;border:2px dashed var(--accent);border-radius:12px;background:transparent;color:var(--accent-strong);cursor:pointer;font:inherit;font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.lib-add b{font-family:var(--round);font-size:22px;line-height:1}
 .divider{height:1.5px;background:var(--line);border-radius:2px}
 .muted{color:var(--ink-soft);font-size:12.5px;margin:0}
 .saved{color:var(--accent-strong);font-size:12.5px;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -286,9 +313,17 @@ footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding-top:6px}
       <!-- WATERMARK -->
       <div class="card section" id="panelWm" role="tabpanel" hidden>
         <div class="sec-head">
-          <h2>個人浮水印<small>上傳你的簽名／Logo，建議用透明底 PNG</small></h2>
-          <label class="switch" title="開啟浮水印"><input type="checkbox" id="wmOn" checked><span></span></label>
+          <h2>個人浮水印<small>可以疊很多個：簽名、Logo、帳號文字…</small></h2>
+          <label class="switch" title="開啟／關閉全部浮水印"><input type="checkbox" id="wmOn" checked><span></span></label>
         </div>
+
+        <div class="field">
+          <div class="lbl">浮水印清單<span class="val" id="wmCount"></span></div>
+          <div class="layers" id="wmLayers"></div>
+          <button class="btn btn-ghost" type="button" id="wmAddLayer">＋ 新增一個浮水印</button>
+        </div>
+        <div class="divider"></div>
+        <div class="editing" id="wmEditing"></div>
 
         <div class="field">
           <div class="lbl">浮水印來源</div>
@@ -301,13 +336,12 @@ footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding-top:6px}
         <div class="field" id="wmImageField">
           <div class="wm-src">
             <div class="wm-prev" id="wmPrevBox"></div>
-            <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
-              <button class="btn btn-soft" type="button" id="wmUploadBtn">選擇浮水印圖</button>
-              <span class="muted" id="wmFileName">尚未上傳，先顯示範例</span>
-              <p class="saved" id="wmSaved" hidden>✓ 已記住，下次打開會自動載入<button type="button" class="linkbtn" id="wmForget">移除</button></p>
-            </div>
+            <p class="muted" style="flex:1">從下面的浮水印庫挑一張給這個浮水印用。上傳時可以一次選好幾張，每張會各自變成一個浮水印。</p>
           </div>
-          <input type="file" id="wmFile" accept="image/*" hidden>
+          <div class="lbl">我的浮水印庫</div>
+          <div class="wm-lib" id="wmLib"></div>
+          <input type="file" id="wmFile" accept="image/*" multiple hidden>
+          <p class="saved">✓ 上傳過的浮水印都會記住，下次打開自動載入</p>
           <label class="check"><input type="checkbox" id="wmKnockout"> 去除白色背景</label>
           <div class="lbl">顏色</div>
           <div class="seg" id="wmTint">
@@ -422,15 +456,19 @@ const $ = id => document.getElementById(id);
 const S = {
   images: [], cur: 0,
   noise: { on: true, src: 'fine', blend: 'overlay', opacity: .35, fit: 'tile', grain: 1 },
-  wm: { on: true, src: 'image', knockout: false, tint: 'none', tintColor: '#9a7ed6',
+  wm: { on: true, src: 'image', asset: null, knockout: false, tint: 'none', tintColor: '#9a7ed6',
         text: '© 我的作品 ✦', textColor: '#ffffff', font: 'Huninn', stroke: false, strokeColor: '#9a7ed6', opacity: .55, size: .28, rotate: -20,
         mode: 'tile', gap: .7, stagger: true, pos: { x: .78, y: .86 }, blend: 'source-over' },
   out: { type: 'image/png', quality: .92, suffix: '_wm' },
-  sync: true
+  sync: true,
+  wmOn: true, wmSel: 0
 };
-/* user-provided assets, shared by every image */
-const A = { noise: null, noiseName: '', wm: null, wmName: '', ver: 0 };
 const clone = o => JSON.parse(JSON.stringify(o));
+const DEFAULT_WM = clone(S.wm);
+S.wms = [S.wm];      // S.wm always points at the layer being edited
+/* user-provided assets, shared by every image; lib = uploaded watermark images */
+const A = { noise: null, noiseName: '', lib: [], ver: 0 };
+const libItem = id => A.lib.find(x => x.id === id);
 let uid = 0;
 
 /* ---------- helpers ---------- */
@@ -463,7 +501,12 @@ const DB = (() => {
   return {
     put: (k, v) => tx('readwrite', st => st.put(v, k)).catch(() => { toast('瀏覽器不允許儲存，這次有效但下次需重新上傳'); }),
     get: k => tx('readonly', st => st.get(k)).catch(() => null),
-    del: k => tx('readwrite', st => st.delete(k)).catch(() => null)
+    del: k => tx('readwrite', st => st.delete(k)).catch(() => null),
+    all: () => open().then(db => new Promise(res => {
+      const out = [], r = db.transaction('assets').objectStore('assets').openCursor();
+      r.onsuccess = () => { const c = r.result; if (c){ out.push([c.key, c.value]); c.continue(); } else res(out); };
+      r.onerror = () => res(out);
+    })).catch(() => [])
   };
 })();
 function loadSettings(){
@@ -471,7 +514,12 @@ function loadSettings(){
     const raw = localStorage.getItem(LS_KEY); if (!raw) return;
     const d = JSON.parse(raw);
     if (d.noise) Object.assign(S.noise, d.noise);
-    if (d.wm) Object.assign(S.wm, d.wm, { pos: Object.assign({}, S.wm.pos, d.wm.pos) });
+    const fix = l => Object.assign(clone(DEFAULT_WM), l, { pos: Object.assign({}, DEFAULT_WM.pos, l.pos) });
+    if (Array.isArray(d.wms) && d.wms.length) S.wms = d.wms.map(fix);
+    else if (d.wm) S.wms = [fix(Object.assign({ asset: 'legacy' }, d.wm))];   // settings from the single-watermark version
+    if (typeof d.wmOn === 'boolean') S.wmOn = d.wmOn;
+    S.wmSel = Math.min(Math.max(0, d.wmSel | 0), S.wms.length - 1);
+    S.wm = S.wms[S.wmSel];
     if (d.out) Object.assign(S.out, d.out);
     if (typeof d.sync === 'boolean') S.sync = d.sync;
   } catch (e) {}
@@ -481,7 +529,7 @@ function saveSettings(){
   clearTimeout(saveT);
   saveT = setTimeout(() => {
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ noise: S.noise, wm: S.wm, out: S.out, sync: S.sync }));
+      localStorage.setItem(LS_KEY, JSON.stringify({ noise: S.noise, wms: S.wms, wmSel: S.wmSel, wmOn: S.wmOn, out: S.out, sync: S.sync }));
     } catch (e) {}
   }, 300);
 }
@@ -494,7 +542,7 @@ function applyControlsFromState(){
   set('wmOpacity', Math.round(S.wm.opacity*100)); set('wmSize', Math.round(S.wm.size*100));
   set('wmRotate', S.wm.rotate); set('wmGap', Math.round(S.wm.gap*100)); set('quality', Math.round(S.out.quality*100));
   set('wmText', S.wm.text); set('wmTextColor', S.wm.textColor); set('wmStrokeColor', S.wm.strokeColor); $('wmStroke').checked = S.wm.stroke; set('wmTintColor', S.wm.tintColor); set('suffix', S.out.suffix);
-  $('noiseOn').checked = S.noise.on; $('wmOn').checked = S.wm.on; $('wmKnockout').checked = S.wm.knockout; $('wmStagger').checked = S.wm.stagger;
+  $('noiseOn').checked = S.noise.on; $('wmOn').checked = S.wmOn; $('wmKnockout').checked = S.wm.knockout; $('wmStagger').checked = S.wm.stagger;
 }
 function refreshVisibility(){
   $('wmImageField').hidden = S.wm.src !== 'image'; $('wmTextField').hidden = S.wm.src !== 'text';
@@ -504,8 +552,7 @@ function refreshVisibility(){
   $('qualityField').hidden = S.out.type === 'image/png';
   $('noiseSaved').hidden = !A.noise;
   if (A.noise) $('noiseSavedName').textContent = '✓ 已記住：' + (A.noiseName || '我的雜訊圖');
-  $('wmSaved').hidden = !A.wm;
-  $('wmFileName').textContent = A.wm ? (A.wmName || '我的浮水印') : '尚未上傳，先顯示範例';
+  buildLayers(); buildLib();
 }
 loadSettings();
 applyControlsFromState();
@@ -629,7 +676,7 @@ function textWatermark(m){
   return c;
 }
 function imageWatermark(m){
-  const base = A.wm || sampleWatermark();
+  const it = libItem(m.asset); const base = it ? it.img : sampleWatermark();
   const { w, h } = dims(base);
   const scale = Math.min(1, 2400 / Math.max(w, h));
   const c = mk(w*scale, h*scale), x = c.getContext('2d');
@@ -647,14 +694,19 @@ const wmCache = new Map();
 function wmSourceFor(m){
   const key = m.src === 'text'
     ? ['t', m.text, m.font, m.textColor, m.stroke, m.strokeColor].join('|')
-    : ['i', A.ver, m.knockout, m.tint, m.tintColor].join('|');
+    : ['i', libItem(m.asset) ? m.asset : 'sample', m.knockout, m.tint, m.tintColor].join('|');
   let c = wmCache.get(key);
   if (!c){ c = m.src === 'text' ? textWatermark(m) : imageWatermark(m); if (wmCache.size > 40) wmCache.clear(); wmCache.set(key, c); }
   return c;
 }
 function rebuildWm(){
   const src = wmSourceFor(S.wm);
-  const box = $('wmPrevBox'); box.innerHTML = ''; const c = mk(src.width, src.height); c.getContext('2d').drawImage(src, 0, 0); box.appendChild(c);
+  const box = $('wmPrevBox'); box.innerHTML = ''; box.appendChild(miniCanvas(src, 160));
+  buildLayers();
+}
+function miniCanvas(src, max){
+  const s = Math.min(1, max / Math.max(src.width, src.height)), c = mk(src.width*s, src.height*s);
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height); return c;
 }
 
 /* ---------- rendering pipeline (resolution independent) ---------- */
@@ -695,7 +747,7 @@ function drawWm(x, W, H, m){
   }
   x.restore();
 }
-function cfgOf(item){ return (!S.sync && item.cfg) ? item.cfg : { noise: S.noise, wm: S.wm }; }
+function cfgOf(item){ return (!S.sync && item.cfg) ? item.cfg : { noise: S.noise, wms: S.wms }; }
 function renderTo(canvas, item, W, H, opaqueBg){
   canvas.width = Math.max(1, Math.round(W)); canvas.height = Math.max(1, Math.round(H));
   const x = canvas.getContext('2d');
@@ -704,7 +756,7 @@ function renderTo(canvas, item, W, H, opaqueBg){
   x.drawImage(item.img, 0, 0, canvas.width, canvas.height);
   const cfg = cfgOf(item);
   drawNoise(x, canvas.width, canvas.height, cfg.noise);
-  drawWm(x, canvas.width, canvas.height, cfg.wm);
+  if (S.wmOn) cfg.wms.forEach(m => drawWm(x, canvas.width, canvas.height, m));
 }
 
 /* ---------- preview ---------- */
@@ -720,8 +772,9 @@ function renderPreview(){
   const max = Math.min(1600, Math.max(700, Math.round($('stage').clientWidth * (window.devicePixelRatio || 1))));
   const s = Math.min(1, max / Math.max(it.w, it.h));
   renderTo(pv, it, it.w*s, it.h*s);
-  pv.classList.toggle('movable', S.wm.on && S.wm.mode === 'single');
-  $('stageHint').hidden = !(S.wm.on && S.wm.mode === 'single');
+  const movable = S.wmOn && S.wms.some(l => l.on && l.mode === 'single');
+  pv.classList.toggle('movable', movable);
+  $('stageHint').hidden = !movable;
   $('metaName').innerHTML = '';
   const b = document.createElement('b'); b.textContent = it.name; $('metaName').appendChild(b);
   $('metaName').append(`　${it.w} × ${it.h}px`);
@@ -783,20 +836,21 @@ async function addFiles(files){
 const syncers = [], refreshers = [];
 function ensureCfgs(){
   if (S.sync) return;
-  const tpl = { noise: clone(S.noise), wm: clone(S.wm) };
+  const tpl = { noise: clone(S.noise), wms: clone(S.wms) };
   S.images.forEach(it => { if (!it.cfg) it.cfg = clone(tpl); });
   bindCurrent();
 }
 function bindCurrent(){
   const it = S.images[S.cur]; if (!it || !it.cfg) return;
-  S.noise = it.cfg.noise; S.wm = it.cfg.wm;
+  S.noise = it.cfg.noise; S.wms = it.cfg.wms;
+  S.wmSel = Math.min(S.wmSel, S.wms.length - 1); S.wm = S.wms[S.wmSel];
   applyControlsFromState(); syncers.forEach(f => f()); refreshers.forEach(f => f());
   refreshVisibility(); updNoiseUI(); buildSwatches(); buildFontGrid(); rebuildWm(); dots();
 }
 function setBatchMode(sync){
   if (sync === S.sync) return;
   if (sync){
-    S.noise = clone(S.noise); S.wm = clone(S.wm);
+    S.noise = clone(S.noise); S.wms = clone(S.wms); S.wm = S.wms[S.wmSel];
     S.images.forEach(it => delete it.cfg); S.sync = true;
     toast(`已改成全部同步，套用第 ${S.cur+1} 張的設定`);
   } else {
@@ -823,7 +877,22 @@ function setPosFromEvent(e){
   S.wm.pos.y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
   schedule();
 }
+function layerAt(e){
+  const r = pv.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * pv.width, py = (e.clientY - r.top) / r.height * pv.height;
+  const W = pv.width, H = pv.height;
+  for (let i = S.wms.length - 1; i >= 0; i--){
+    const m = S.wms[i]; if (!m.on || m.mode !== 'single') continue;
+    const src = wmSourceFor(m), ww = m.size * Math.min(W, H), wh = ww * src.height / src.width;
+    const dx = px - m.pos.x * W, dy = py - m.pos.y * H, a = -m.rotate * Math.PI / 180;
+    const lx = dx * Math.cos(a) - dy * Math.sin(a), ly = dx * Math.sin(a) + dy * Math.cos(a);
+    if (Math.abs(lx) <= ww/2 + 8 && Math.abs(ly) <= wh/2 + 8) return i;
+  }
+  return -1;
+}
 pv.addEventListener('pointerdown', e => {
+  if (!S.wmOn) return;
+  const hit = layerAt(e);
+  if (hit >= 0 && hit !== S.wmSel) selectLayer(hit);
   if (!(S.wm.on && S.wm.mode === 'single')) return;
   dragging = true; pv.setPointerCapture(e.pointerId); pv.classList.add('moving'); setPosFromEvent(e);
 });
@@ -851,7 +920,7 @@ function showTab(which){
   $('panelNoise').hidden = which !== 'noise'; $('panelWm').hidden = which !== 'wm';
 }
 $('tabNoise').onclick = () => showTab('noise'); $('tabWm').onclick = () => showTab('wm');
-function dots(){ $('dotNoise').classList.toggle('on', S.noise.on); $('dotWm').classList.toggle('on', S.wm.on); }
+function dots(){ $('dotNoise').classList.toggle('on', S.noise.on); $('dotWm').classList.toggle('on', S.wmOn && S.wms.some(l => l.on)); }
 
 // noise
 $('noiseOn').onchange = e => { S.noise.on = e.target.checked; dots(); schedule(); };
@@ -895,19 +964,110 @@ slider('noiseOpacity', v => v + '%', v => S.noise.opacity = v/100);
 slider('noiseGrain', v => (v/100).toFixed(2) + '×', v => S.noise.grain = v/100);
 
 // watermark
-$('wmOn').onchange = e => { S.wm.on = e.target.checked; dots(); schedule(); };
+$('wmOn').onchange = e => { S.wmOn = e.target.checked; dots(); schedule(); };
 seg('wmSrc', () => S.wm.src, v => S.wm.src = v, () => { $('wmImageField').hidden = S.wm.src !== 'image'; $('wmTextField').hidden = S.wm.src !== 'text'; rebuildWm(); });
-$('wmUploadBtn').onclick = () => $('wmFile').click();
-$('wmFile').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  try {
-    A.wm = await loadImg(f); A.wmName = f.name; A.ver++; rebuildWm(); refreshVisibility(); schedule();
-    DB.put('wm', { blob: f, name: f.name }); toast('已套用並記住你的浮水印');
-  }
-  catch (err){ toast(err.message); }
+
+/* layers */
+const SPOTS = [[.8,.86],[.2,.86],[.8,.14],[.2,.14],[.5,.5],[.5,.86],[.5,.14]];
+const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.3 6.3C3.7 8 2 12 2 12s3.6 7 10 7a9.6 9.6 0 0 0 4.6-1.2"/></svg>';
+const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
+function layerLabel(m){
+  if (m.src === 'text') return { name: m.text || '（空白文字）', kind: '文字 · ' + fontOf(m.font).n };
+  const it = libItem(m.asset); return { name: it ? it.name : '範例浮水印', kind: '圖片' };
+}
+function buildLayers(){
+  const box = $('wmLayers'); if (!box) return; box.innerHTML = '';
+  S.wms.forEach((m, i) => {
+    const row = document.createElement('div'); row.className = 'layer' + (i === S.wmSel ? ' sel' : '') + (m.on ? '' : ' off');
+    row.tabIndex = 0; row.setAttribute('role', 'button');
+    const th = document.createElement('div'); th.className = 'lthumb'; th.appendChild(miniCanvas(wmSourceFor(m), 80));
+    const lb = layerLabel(m), nm = document.createElement('div'); nm.className = 'lname';
+    const b = document.createElement('b'); b.textContent = `${i+1}. ${lb.name}`; const sp = document.createElement('span');
+    sp.textContent = `${lb.kind} · ${m.mode === 'tile' ? '滿版' : '單個'} · ${Math.round(m.opacity*100)}%`; nm.append(b, sp);
+    const eye = document.createElement('button'); eye.type = 'button'; eye.className = 'icon-btn'; eye.innerHTML = m.on ? EYE : EYE_OFF;
+    eye.title = m.on ? '隱藏這個浮水印' : '顯示這個浮水印'; eye.setAttribute('aria-label', eye.title);
+    eye.onclick = e => { e.stopPropagation(); m.on = !m.on; buildLayers(); dots(); schedule(); };
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'icon-btn'; del.innerHTML = TRASH;
+    del.title = '刪除這個浮水印'; del.setAttribute('aria-label', del.title);
+    del.onclick = e => { e.stopPropagation(); removeLayer(i); };
+    row.append(th, nm, eye, del);
+    row.onclick = () => selectLayer(i);
+    row.onkeydown = e => { if (e.target === row && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); selectLayer(i); } };
+    box.appendChild(row);
+  });
+  $('wmCount').textContent = `${S.wms.length} 個`;
+  const lb = layerLabel(S.wm);
+  $('wmEditing').textContent = `正在編輯：第 ${S.wmSel+1} 個浮水印（${lb.name}）`;
+}
+function selectLayer(i){
+  S.wmSel = i; S.wm = S.wms[i]; fontCat = fontOf(S.wm.font).cat;
+  applyControlsFromState(); syncers.forEach(f => f()); refreshers.forEach(f => f());
+  refreshVisibility(); buildFontGrid(); rebuildWm(); schedule(false);
+}
+function newLayer(over){
+  const m = clone(DEFAULT_WM); m.mode = 'single';
+  const [x, y] = SPOTS[S.wms.length % SPOTS.length]; m.pos = { x, y }; m.size = .22; m.rotate = 0;
+  return Object.assign(m, over || {});
+}
+$('wmAddLayer').onclick = () => {
+  const used = new Set(S.wms.map(l => l.asset)); const unused = A.lib.find(it => !used.has(it.id));
+  S.wms.push(unused ? newLayer({ src: 'image', asset: unused.id }) : newLayer({ src: 'text' }));
+  selectLayer(S.wms.length - 1); dots(); schedule();
+  toast(unused ? '已新增浮水印，用的是庫裡還沒用過的圖' : '已新增文字浮水印，也可以改成圖片');
 };
-$('wmForget').onclick = () => {
-  A.wm = null; A.wmName = ''; A.ver++; DB.del('wm'); rebuildWm(); refreshVisibility(); schedule(); toast('已移除你的浮水印');
+function removeLayer(i){
+  if (S.wms.length === 1){ toast('至少要留一個；不想要可以按眼睛隱藏，或關掉右上角開關'); return; }
+  S.wms.splice(i, 1); selectLayer(Math.min(S.wmSel >= i && S.wmSel > 0 ? S.wmSel - 1 : S.wmSel, S.wms.length - 1)); dots(); schedule();
+}
+
+/* watermark library */
+function buildLib(){
+  const box = $('wmLib'); if (!box) return; box.innerHTML = '';
+  const items = [{ id: null, name: '範例浮水印', img: null }].concat(A.lib);
+  items.forEach(it => {
+    const b = document.createElement('div'); b.className = 'lib-item' + (it.id ? '' : ' sample'); b.tabIndex = 0; b.setAttribute('role', 'button');
+    const active = it.id === null ? !libItem(S.wm.asset) : S.wm.asset === it.id;
+    b.setAttribute('aria-pressed', String(active)); b.title = it.name; b.setAttribute('aria-label', '使用 ' + it.name);
+    b.appendChild(miniCanvas(it.img ? (() => { const c = mk(it.img.naturalWidth, it.img.naturalHeight); c.getContext('2d').drawImage(it.img, 0, 0); return c; })() : sampleWatermark(), 120));
+    const use = () => { S.wm.src = 'image'; S.wm.asset = it.id; syncers.forEach(f => f()); refreshVisibility(); rebuildWm(); schedule(); };
+    b.onclick = use; b.onkeydown = e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); use(); } };
+    if (it.id){
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', '從浮水印庫刪除 ' + it.name);
+      x.onclick = e => { e.stopPropagation(); removeLib(it.id); }; b.appendChild(x);
+    }
+    box.appendChild(b);
+  });
+  const add = document.createElement('button'); add.type = 'button'; add.className = 'lib-add'; add.innerHTML = '<b>+</b>上傳';
+  add.onclick = () => $('wmFile').click(); box.prepend(add);
+}
+function allLayerLists(){ const lists = [S.wms]; S.images.forEach(it => { if (it.cfg && it.cfg.wms !== S.wms) lists.push(it.cfg.wms); }); return lists; }
+function removeLib(id){
+  const it = libItem(id); if (!it) return;
+  A.lib = A.lib.filter(x => x.id !== id); DB.del('wmlib:' + id);
+  allLayerLists().forEach(list => list.forEach(l => { if (l.asset === id) l.asset = null; }));
+  wmCache.clear(); refreshVisibility(); rebuildWm(); schedule(); toast('已從浮水印庫刪除 ' + it.name);
+}
+$('wmFile').onchange = async e => {
+  const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
+  const added = [];
+  for (const f of files){
+    try {
+      const img = await loadImg(f), id = 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const item = { id, name: f.name, img, t: Date.now() }; A.lib.push(item); added.push(item);
+      DB.put('wmlib:' + id, { id, name: f.name, blob: f, t: item.t });
+    } catch (err){ toast(err.message); }
+  }
+  if (!added.length) return;
+  // the first upload goes to the watermark being edited (if it is an unused image slot), the rest become new watermarks
+  let queue = added.slice();
+  if (S.wm.src === 'image' && !libItem(S.wm.asset)){
+    const first = queue.shift(); S.wm.asset = first.id;
+  }
+  queue.forEach(it => S.wms.push(newLayer({ src: 'image', asset: it.id })));
+  selectLayer(queue.length ? S.wms.length - 1 : S.wmSel);
+  dots(); schedule();
+  toast(added.length > 1 ? `已加入 ${added.length} 個浮水印，並記住它們` : '已套用並記住這個浮水印');
 };
 $('wmKnockout').onchange = e => { S.wm.knockout = e.target.checked; rebuildWm(); schedule(); };
 seg('wmTint', () => S.wm.tint, v => S.wm.tint = v, () => { $('wmTintCustomRow').hidden = S.wm.tint !== 'custom'; rebuildWm(); });
@@ -1067,10 +1227,15 @@ if (S.noise.src === 'custom') S.noise.src = 'fine';   // until the saved image l
 const wantCustomNoise = (() => { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}').noise?.src === 'custom'; } catch (e) { return false; } })();
 addSamples(); ensureCfgs(); rebuildWm(); buildSwatches(); buildFontGrid(); updNoiseUI(); dots(); refreshVisibility(); updModeUI(); buildStrip(); schedule(false);
 (async () => {
-  const [n, w] = await Promise.all([DB.get('noise'), DB.get('wm')]);
+  const [n, w, rows] = await Promise.all([DB.get('noise'), DB.get('wm'), DB.all()]);
   let changed = false;
   if (n && n.blob){ try { A.noise = await blobToImg(n.blob); A.noiseName = n.name; if (wantCustomNoise) S.noise.src = 'custom'; changed = true; } catch (e) {} }
-  if (w && w.blob){ try { A.wm = await blobToImg(w.blob); A.wmName = w.name; changed = true; } catch (e) {} }
+  const libRows = rows.filter(([k]) => typeof k === 'string' && k.startsWith('wmlib:')).map(r => r[1]).sort((a, b) => (a.t || 0) - (b.t || 0));
+  if (w && w.blob){   // migrate the watermark saved by the single-watermark version
+    const item = { id: 'legacy', name: w.name, blob: w.blob, t: 0 };
+    DB.put('wmlib:legacy', item); DB.del('wm'); libRows.unshift(item);
+  }
+  for (const r of libRows){ try { A.lib.push({ id: r.id, name: r.name, img: await blobToImg(r.blob), t: r.t }); changed = true; } catch (e) {} }
   if (changed){ A.ver++; wmCache.clear(); rebuildWm(); buildSwatches(); syncFit(); updNoiseUI(); refreshVisibility(); schedule(); toast('已載入你上次的雜訊圖與浮水印'); }
 })();
 $('exportNote').textContent = '目前是範例圖。按「加入圖片」或把圖拖進來，範例會自動移除。';
