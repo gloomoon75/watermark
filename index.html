@@ -403,6 +403,25 @@ footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding-top:6px}
           </div>
         </div>
         <div class="field">
+          <div class="lbl">效果</div>
+          <div class="seg" id="wmEffect">
+            <button type="button" data-v="none">一般</button>
+            <button type="button" data-v="emboss">浮雕（凸起）</button>
+            <button type="button" data-v="deboss">壓印（凹陷）</button>
+          </div>
+          <p class="muted" id="wmEffectTip" hidden>浮雕會讓浮水印變成壓在圖上的立體痕跡，顏色跟著底圖走。浮水印越粗、越大越明顯。</p>
+        </div>
+        <div class="field" id="wmDepthField" hidden>
+          <label for="wmDepth">立體深度 <span class="val" id="wmDepthV"></span></label>
+          <input type="range" id="wmDepth" min="1" max="20" value="5">
+          <div class="lbl">光線方向</div>
+          <div class="seg" id="wmLight">
+            <button type="button" data-v="tl">左上光</button>
+            <button type="button" data-v="t">正上光</button>
+            <button type="button" data-v="tr">右上光</button>
+          </div>
+        </div>
+        <div class="field" id="wmBlendField">
           <div class="lbl">混合模式</div>
           <div class="seg" id="wmBlend">
             <button type="button" data-v="source-over">一般</button>
@@ -458,7 +477,8 @@ const S = {
   noise: { on: true, src: 'fine', blend: 'overlay', opacity: .35, fit: 'tile', grain: 1 },
   wm: { on: true, src: 'image', asset: null, knockout: false, tint: 'none', tintColor: '#9a7ed6',
         text: '© 我的作品 ✦', textColor: '#ffffff', font: 'Huninn', stroke: false, strokeColor: '#9a7ed6', opacity: .55, size: .28, rotate: -20,
-        mode: 'tile', gap: .7, stagger: true, pos: { x: .78, y: .86 }, blend: 'source-over' },
+        mode: 'tile', gap: .7, stagger: true, pos: { x: .78, y: .86 }, blend: 'source-over',
+        effect: 'none', depth: 5, light: 'tl' },
   out: { type: 'image/png', quality: .92, suffix: '_wm' },
   sync: true,
   wmOn: true, wmSel: 0
@@ -540,7 +560,7 @@ function applyControlsFromState(){
   const set = (id, v) => { const el = $(id); if (el) el.value = v; };
   set('noiseOpacity', Math.round(S.noise.opacity*100)); set('noiseGrain', Math.round(S.noise.grain*100));
   set('wmOpacity', Math.round(S.wm.opacity*100)); set('wmSize', Math.round(S.wm.size*100));
-  set('wmRotate', S.wm.rotate); set('wmGap', Math.round(S.wm.gap*100)); set('quality', Math.round(S.out.quality*100));
+  set('wmRotate', S.wm.rotate); set('wmDepth', S.wm.depth); set('wmGap', Math.round(S.wm.gap*100)); set('quality', Math.round(S.out.quality*100));
   set('wmText', S.wm.text); set('wmTextColor', S.wm.textColor); set('wmStrokeColor', S.wm.strokeColor); $('wmStroke').checked = S.wm.stroke; set('wmTintColor', S.wm.tintColor); set('suffix', S.out.suffix);
   $('noiseOn').checked = S.noise.on; $('wmOn').checked = S.wmOn; $('wmKnockout').checked = S.wm.knockout; $('wmStagger').checked = S.wm.stagger;
 }
@@ -549,6 +569,7 @@ function refreshVisibility(){
   $('wmTintCustomRow').hidden = S.wm.tint !== 'custom';
   $('wmStrokeColor').hidden = !S.wm.stroke;
   $('wmGapField').hidden = S.wm.mode !== 'tile'; $('wmPosField').hidden = S.wm.mode !== 'single';
+  updEffectUI();
   $('qualityField').hidden = S.out.type === 'image/png';
   $('noiseSaved').hidden = !A.noise;
   if (A.noise) $('noiseSavedName').textContent = '✓ 已記住：' + (A.noiseName || '我的雜訊圖');
@@ -614,7 +635,7 @@ function sampleWatermark(){
   x.fillStyle = '#fff'; x.strokeStyle = '#fff'; x.lineWidth = 10; x.lineJoin = 'round';
   x.beginPath(); x.roundRect ? x.roundRect(10, 10, 880, 240, 120) : x.rect(10, 10, 880, 240); x.stroke();
   x.font = '600 120px Fredoka, Huninn, sans-serif'; x.textBaseline = 'middle'; x.textAlign = 'center';
-  x.fillText('@lilac.art', 470, 135);
+  x.fillText('@your.name', 470, 135);
   x.beginPath(); const s = 34, cx = 110, cy = 130;
   x.moveTo(cx, cy-s); x.quadraticCurveTo(cx, cy, cx+s, cy); x.quadraticCurveTo(cx, cy, cx, cy+s); x.quadraticCurveTo(cx, cy, cx-s, cy); x.quadraticCurveTo(cx, cy, cx, cy-s); x.fill();
   return c;
@@ -727,14 +748,13 @@ function drawNoise(x, W, H, n){
   }
   x.restore();
 }
-function drawWm(x, W, H, m){
-  if (!m.on || m.opacity <= 0) return;
-  const wmSource = wmSourceFor(m);
-  const ww = m.size * Math.min(W, H), wh = ww * wmSource.height / wmSource.width;
+/* lays the watermark out (single or tiled) onto ctx x */
+function layoutWm(x, W, H, m, src){
+  const ww = m.size * Math.min(W, H), wh = ww * src.height / src.width;
   const rot = m.rotate * Math.PI / 180;
-  x.save(); x.globalAlpha = m.opacity; x.globalCompositeOperation = m.blend; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
   if (m.mode === 'single'){
-    x.translate(m.pos.x * W, m.pos.y * H); x.rotate(rot); x.drawImage(wmSource, -ww/2, -wh/2, ww, wh);
+    x.translate(m.pos.x * W, m.pos.y * H); x.rotate(rot); x.drawImage(src, -ww/2, -wh/2, ww, wh);
   } else {
     const gap = m.gap * ww * .5, sx = ww + gap, sy = wh + gap;
     const R = Math.hypot(W, H) / 2 + Math.max(sx, sy);
@@ -742,11 +762,63 @@ function drawWm(x, W, H, m){
     const rows = Math.ceil(R / sy), cols = Math.ceil(R / sx) + 1;
     for (let r = -rows; r <= rows; r++){
       const off = m.stagger && (r & 1) ? sx/2 : 0;
-      for (let c = -cols; c <= cols; c++) x.drawImage(wmSource, c*sx + off - ww/2, r*sy - wh/2, ww, wh);
+      for (let c = -cols; c <= cols; c++) x.drawImage(src, c*sx + off - ww/2, r*sy - wh/2, ww, wh);
     }
   }
-  x.restore();
+  return { ww, wh };
 }
+/* scratch canvases for the emboss effect, reused between renders */
+const EMB = { mask: mk(1, 1), hi: mk(1, 1), sh: mk(1, 1) };
+function sizeTo(c, W, H){ if (c.width !== W || c.height !== H){ c.width = W; c.height = H; } else c.getContext('2d').clearRect(0, 0, W, H); return c.getContext('2d'); }
+const LIGHTS = { tl: -135, t: -90, tr: -45 };   // direction the light comes from, in degrees
+function drawWm(x, W, H, m){
+  if (!m.on || m.opacity <= 0) return;
+  const src = wmSourceFor(m);
+  if (m.effect !== 'emboss' && m.effect !== 'deboss'){
+    x.save(); x.globalAlpha = m.opacity; x.globalCompositeOperation = m.blend;
+    layoutWm(x, W, H, m, src); x.restore(); return;
+  }
+  // 1. silhouette of every placed watermark (the black layer, kept in place)
+  const mc = sizeTo(EMB.mask, W, H);
+  mc.save(); layoutWm(mc, W, H, m, src); mc.restore();
+  // 2. the white layer = the same silhouette, offset
+  //    offset scales with the picture: depth 1..20 = 0.06%..1.2% of the short side (~3px at depth 5 on 1000px)
+  const d = Math.max(.5, Math.min(W, H) * m.depth * .0006);
+  const a = (LIGHTS[m.light] ?? -135) * Math.PI / 180;
+  const tx = Math.cos(a) * d, ty = Math.sin(a) * d;           // toward the light
+  const raised = m.effect === 'emboss';
+  const hc = sizeTo(EMB.hi, W, H);
+  hc.drawImage(EMB.mask, raised ? tx : -tx, raised ? ty : -ty);
+  // 3. blend both layers with a Procreate/Photoshop-style soft light, done per pixel:
+  //    black layer: v -> v^2 (darkens),  white layer: v -> sqrt(v) (lightens).
+  //    Where the two overlap they cancel out, so only the offset rims show: one lit edge, one shaded edge.
+  //    (The browser's built-in soft light crushes dark areas, which is why it looked flat on dark pictures.)
+  const mA = mc.getImageData(0, 0, W, H).data, wA = hc.getImageData(0, 0, W, H).data;
+  const img = x.getImageData(0, 0, W, H), p = img.data, op = m.opacity;
+  // a little body tint so raised and sunken read differently: raised lifts the face, sunken sinks it
+  const body = raised ? .12 : .28;
+  for (let i = 0; i < p.length; i += 4){
+    const ab = mA[i+3], aw = wA[i+3];
+    if (!ab && !aw) continue;
+    const kb = ab / 255 * op, kw = aw / 255 * op;
+    for (let c = 0; c < 3; c++){
+      let v = p[i+c];
+      if (raised){
+        if (kb) v += (SQ[v] - v) * kb;                       // black layer below
+        if (kw) v += (RT[v | 0] - v) * kw;                   // white layer on top
+        if (kb && kw) v += (RT[v | 0] - v) * body * Math.min(kb, kw);
+      } else {
+        if (kw) v += (RT[v] - v) * kw;                       // white layer below
+        if (kb) v += (SQ[v | 0] - v) * kb;                   // black layer on top
+        if (kb && kw) v += (SQ[v | 0] - v) * body * Math.min(kb, kw);
+      }
+      p[i+c] = v;
+    }
+  }
+  x.putImageData(img, 0, 0);
+}
+const SQ = new Uint8ClampedArray(256), RT = new Uint8ClampedArray(256);
+for (let v = 0; v < 256; v++){ SQ[v] = Math.round(v * v / 255); RT[v] = Math.round(Math.sqrt(v / 255) * 255); }
 function cfgOf(item){ return (!S.sync && item.cfg) ? item.cfg : { noise: S.noise, wms: S.wms }; }
 function renderTo(canvas, item, W, H, opaqueBg){
   canvas.width = Math.max(1, Math.round(W)); canvas.height = Math.max(1, Math.round(H));
@@ -984,7 +1056,7 @@ function buildLayers(){
     const th = document.createElement('div'); th.className = 'lthumb'; th.appendChild(miniCanvas(wmSourceFor(m), 80));
     const lb = layerLabel(m), nm = document.createElement('div'); nm.className = 'lname';
     const b = document.createElement('b'); b.textContent = `${i+1}. ${lb.name}`; const sp = document.createElement('span');
-    sp.textContent = `${lb.kind} · ${m.mode === 'tile' ? '滿版' : '單個'} · ${Math.round(m.opacity*100)}%`; nm.append(b, sp);
+    sp.textContent = `${lb.kind}${m.effect === 'emboss' ? ' · 浮雕' : m.effect === 'deboss' ? ' · 壓印' : ''} · ${m.mode === 'tile' ? '滿版' : '單個'} · ${Math.round(m.opacity*100)}%`; nm.append(b, sp);
     const eye = document.createElement('button'); eye.type = 'button'; eye.className = 'icon-btn'; eye.innerHTML = m.on ? EYE : EYE_OFF;
     eye.title = m.on ? '隱藏這個浮水印' : '顯示這個浮水印'; eye.setAttribute('aria-label', eye.title);
     eye.onclick = e => { e.stopPropagation(); m.on = !m.on; buildLayers(); dots(); schedule(); };
@@ -1081,6 +1153,16 @@ slider('wmGap', v => v + '%', v => S.wm.gap = v/100);
 $('wmStagger').onchange = e => { S.wm.stagger = e.target.checked; schedule(); };
 seg('wmMode', () => S.wm.mode, v => S.wm.mode = v, () => { $('wmGapField').hidden = S.wm.mode !== 'tile'; $('wmPosField').hidden = S.wm.mode !== 'single'; });
 seg('wmBlend', () => S.wm.blend, v => S.wm.blend = v);
+function updEffectUI(){
+  const emb = S.wm.effect === 'emboss' || S.wm.effect === 'deboss';
+  $('wmDepthField').hidden = !emb; $('wmEffectTip').hidden = !emb; $('wmBlendField').hidden = emb;
+}
+seg('wmEffect', () => S.wm.effect, v => {
+  const wasNone = S.wm.effect === 'none'; S.wm.effect = v;
+  if (wasNone && v !== 'none' && S.wm.opacity < .7){ S.wm.opacity = .8; $('wmOpacity').value = 80; refreshers.forEach(f => f()); }
+}, () => { updEffectUI(); buildLayers(); });
+slider('wmDepth', v => v, v => S.wm.depth = v);
+seg('wmLight', () => S.wm.light, v => S.wm.light = v);
 const g9 = $('grid9');
 [[.12,.12,'左上'],[.5,.12,'上'],[.88,.12,'右上'],[.12,.5,'左'],[.5,.5,'中'],[.88,.5,'右'],[.12,.88,'左下'],[.5,.88,'下'],[.88,.88,'右下']].forEach(([px, py, name]) => {
   const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', name); b.title = name;
