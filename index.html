@@ -30,7 +30,8 @@ img{max-width:100%}
   --on-accent:#FFFFFF;
   --check-a:#F1EAFB;
   --check-b:#FFFFFF;
-  --shadow:0 10px 30px -14px rgba(92,64,150,.35);
+  --shadow-rgb:92,64,150;
+  --shadow:0 10px 30px -14px rgba(var(--shadow-rgb),.35);
   --font:"Huninn","Zen Maru Gothic","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   --round:"Fredoka","Huninn","Zen Maru Gothic",system-ui,sans-serif;
 }
@@ -69,11 +70,12 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .brand h1 span{color:var(--accent-strong)}
 .brand p{margin:0;color:var(--ink-soft);font-size:14px}
 .brand .author{font-size:12px;letter-spacing:.5px;opacity:.85;margin-top:2px}
-.upload-btn{margin-left:auto}
+.upload-btn{margin-left:0}
 
 .main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
 @media (min-width:901px){.stage-card{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}}
-@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}.upload-btn{margin-left:0}}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.palette{margin-left:0}}
 
 .card{background:var(--surface);border:1.5px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}
 .stage-card{padding:14px;display:flex;flex-direction:column;gap:12px}
@@ -108,7 +110,7 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .panel{display:flex;flex-direction:column;gap:16px}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;background:var(--surface-2);border-radius:18px;border:1.5px solid var(--line)}
 .tab{border:none;background:transparent;color:var(--ink-soft);font:inherit;font-size:14.5px;padding:9px 6px;border-radius:13px;cursor:pointer;display:flex;gap:6px;align-items:center;justify-content:center}
-.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 3px 10px -4px rgba(92,64,150,.4)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 3px 10px -4px rgba(var(--shadow-rgb),.4)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--line)}
 .dot.on{background:var(--accent)}
 .section{padding:18px;display:flex;flex-direction:column;gap:16px}
@@ -120,7 +122,7 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .field>label,.lbl{font-size:13.5px;color:var(--ink-soft);display:flex;justify-content:space-between;align-items:baseline}
 .val{font-family:var(--round);color:var(--ink);font-variant-numeric:tabular-nums;font-size:13.5px}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:99px;background:var(--accent-soft);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--surface);border:3px solid var(--accent);cursor:pointer;box-shadow:0 2px 6px rgba(92,64,150,.35)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--surface);border:3px solid var(--accent);cursor:pointer;box-shadow:0 2px 6px rgba(var(--shadow-rgb),.35)}
 input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--surface);border:3px solid var(--accent);cursor:pointer}
 input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--accent-soft)}
 
@@ -222,7 +224,29 @@ footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding-top:6px}
   padding:10px 18px;border-radius:99px;font-size:14px;transition:.25s;pointer-events:none;z-index:10;max-width:calc(100% - 32px);text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+/* ---------- theme colours (lavender is the default above) ---------- */
+:root[data-palette="sakura"]{--bg:#FDF0F4;--bg-2:#F9E0E9;--surface:#FFFFFF;--surface-2:#FFF6F9;--ink:#57303F;--ink-soft:#9A6B7C;--line:#F2D5E0;--accent:#D46C96;--accent-strong:#B8507B;--accent-soft:#FADDE8;--blush:#FFD9B8;--on-accent:#FFFFFF;--check-a:#FCEBF1;--check-b:#FFFFFF;--shadow-rgb:170,70,110;}
+:root[data-palette="mint"]{--bg:#EEF8F3;--bg-2:#DDF1E7;--surface:#FFFFFF;--surface-2:#F5FBF8;--ink:#24473A;--ink-soft:#5E8576;--line:#CFE8DC;--accent:#3FA57D;--accent-strong:#2F8664;--accent-soft:#D3F0E3;--blush:#FBD3C9;--on-accent:#FFFFFF;--check-a:#E6F5EE;--check-b:#FFFFFF;--shadow-rgb:40,120,90;}
+:root[data-palette="sky"]{--bg:#EEF5FD;--bg-2:#DCEAFB;--surface:#FFFFFF;--surface-2:#F5F9FF;--ink:#23395A;--ink-soft:#607A9E;--line:#D2E2F5;--accent:#5B97DB;--accent-strong:#3F78BE;--accent-soft:#D8E8FB;--blush:#FCD6E3;--on-accent:#FFFFFF;--check-a:#E7F0FC;--check-b:#FFFFFF;--shadow-rgb:50,100,170;}
+:root[data-palette="milktea"]{--bg:#F8F2EA;--bg-2:#F0E4D4;--surface:#FFFFFF;--surface-2:#FCF8F3;--ink:#4A3628;--ink-soft:#8C7360;--line:#EADCCB;--accent:#B58A60;--accent-strong:#946A42;--accent-soft:#F1E2D0;--blush:#F6CFC8;--on-accent:#FFFFFF;--check-a:#F4EBDF;--check-b:#FFFFFF;--shadow-rgb:120,80,40;}
+@media (prefers-color-scheme: dark){
+  :root[data-palette="sakura"]:not([data-theme="light"]){--bg:#251A20;--bg-2:#33232B;--surface:#2F2229;--surface-2:#3A2932;--ink:#FBE9F0;--ink-soft:#CFA9B8;--line:#503845;--accent:#F0A0C0;--accent-strong:#F7BDD3;--accent-soft:#4E3040;--blush:#6B4A3A;--on-accent:#251A20;--check-a:#3A2932;--check-b:#30232A;--shadow-rgb:0,0,0;}
+  :root[data-palette="mint"]:not([data-theme="light"]){--bg:#16231E;--bg-2:#1E3029;--surface:#1F2E28;--surface-2:#273A32;--ink:#E5F6EE;--ink-soft:#9CC4B3;--line:#355247;--accent:#7DD3AF;--accent-strong:#A3E3C8;--accent-soft:#2A4A3D;--blush:#6B4A45;--on-accent:#16231E;--check-a:#273A32;--check-b:#1F2E28;--shadow-rgb:0,0,0;}
+  :root[data-palette="sky"]:not([data-theme="light"]){--bg:#161D29;--bg-2:#1E2838;--surface:#1F2A3A;--surface-2:#273447;--ink:#E6EFFC;--ink-soft:#9DB2D0;--line:#34465F;--accent:#8DBDF2;--accent-strong:#B0D2F7;--accent-soft:#2B3E5A;--blush:#5E3F4E;--on-accent:#161D29;--check-a:#273447;--check-b:#1F2A3A;--shadow-rgb:0,0,0;}
+  :root[data-palette="milktea"]:not([data-theme="light"]){--bg:#221B15;--bg-2:#2E251D;--surface:#2C231C;--surface-2:#372C23;--ink:#F6EDE3;--ink-soft:#C7B29E;--line:#4D3E31;--accent:#D9B48E;--accent-strong:#E8CBAC;--accent-soft:#4A3A2C;--blush:#6A4540;--on-accent:#221B15;--check-a:#372C23;--check-b:#2C231C;--shadow-rgb:0,0,0;}
+}
+:root[data-palette="sakura"][data-theme="dark"]{--bg:#251A20;--bg-2:#33232B;--surface:#2F2229;--surface-2:#3A2932;--ink:#FBE9F0;--ink-soft:#CFA9B8;--line:#503845;--accent:#F0A0C0;--accent-strong:#F7BDD3;--accent-soft:#4E3040;--blush:#6B4A3A;--on-accent:#251A20;--check-a:#3A2932;--check-b:#30232A;--shadow-rgb:0,0,0;}
+:root[data-palette="mint"][data-theme="dark"]{--bg:#16231E;--bg-2:#1E3029;--surface:#1F2E28;--surface-2:#273A32;--ink:#E5F6EE;--ink-soft:#9CC4B3;--line:#355247;--accent:#7DD3AF;--accent-strong:#A3E3C8;--accent-soft:#2A4A3D;--blush:#6B4A45;--on-accent:#16231E;--check-a:#273A32;--check-b:#1F2E28;--shadow-rgb:0,0,0;}
+:root[data-palette="sky"][data-theme="dark"]{--bg:#161D29;--bg-2:#1E2838;--surface:#1F2A3A;--surface-2:#273447;--ink:#E6EFFC;--ink-soft:#9DB2D0;--line:#34465F;--accent:#8DBDF2;--accent-strong:#B0D2F7;--accent-soft:#2B3E5A;--blush:#5E3F4E;--on-accent:#161D29;--check-a:#273447;--check-b:#1F2A3A;--shadow-rgb:0,0,0;}
+:root[data-palette="milktea"][data-theme="dark"]{--bg:#221B15;--bg-2:#2E251D;--surface:#2C231C;--surface-2:#372C23;--ink:#F6EDE3;--ink-soft:#C7B29E;--line:#4D3E31;--accent:#D9B48E;--accent-strong:#E8CBAC;--accent-soft:#4A3A2C;--blush:#6A4540;--on-accent:#221B15;--check-a:#372C23;--check-b:#2C231C;--shadow-rgb:0,0,0;}
+.palette{display:flex;align-items:center;gap:8px;margin-left:auto;background:var(--surface);border:1.5px solid var(--line);border-radius:99px;padding:5px 8px 5px 14px}
+.palette .pal-lbl{font-size:13px;color:var(--ink-soft);margin-right:2px}
+.pal{width:26px;height:26px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1.5px var(--line);cursor:pointer;padding:0;transition:transform .15s}
+.pal:hover{transform:scale(1.1)}
+.pal[aria-checked="true"]{box-shadow:0 0 0 2.5px var(--ink)}
+.pal:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 </style>
+<script>try{var p=localStorage.getItem('lilac-watermark:palette');if(p&&p!=='lavender')document.documentElement.setAttribute('data-palette',p);}catch(e){}</script>
 </head>
 <body>
 <div class="wrap">
@@ -239,6 +263,14 @@ footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding-top:6px}
       <h1><span>委圖用浮水印工坊</span></h1>
       <p>雜訊覆蓋 × 個人浮水印，一次處理整批圖片</p>
       <p class="author">作者：懶人阿暝</p>
+    </div>
+    <div class="palette" role="radiogroup" aria-label="主題顏色" id="palette">
+      <span class="pal-lbl">主題色</span>
+      <button type="button" class="pal" role="radio" data-p="lavender" title="薰衣草紫" aria-label="薰衣草紫" style="background:#9A7ED6"></button>
+      <button type="button" class="pal" role="radio" data-p="sakura" title="櫻花粉" aria-label="櫻花粉" style="background:#E58BAF"></button>
+      <button type="button" class="pal" role="radio" data-p="mint" title="薄荷綠" aria-label="薄荷綠" style="background:#5FBF98"></button>
+      <button type="button" class="pal" role="radio" data-p="sky" title="天空藍" aria-label="天空藍" style="background:#6FA8E8"></button>
+      <button type="button" class="pal" role="radio" data-p="milktea" title="奶茶棕" aria-label="奶茶棕" style="background:#C29A72"></button>
     </div>
     <button class="btn btn-main upload-btn" id="uploadBtn" type="button">＋ 加入圖片</button>
     <input type="file" id="fileInput" accept="image/*" multiple hidden>
@@ -1293,6 +1325,21 @@ $('saveEach').onclick = async () => {
   } catch (e){ toast(e.message || '存檔失敗'); }
   finally { busy(false); $('exportNote').textContent = ''; }
 };
+
+/* ---------- theme colour ---------- */
+(() => {
+  const KEY = 'lilac-watermark:palette', NAMES = { lavender: '薰衣草紫', sakura: '櫻花粉', mint: '薄荷綠', sky: '天空藍', milktea: '奶茶棕' };
+  const root = document.documentElement;
+  const sync = () => { const cur = root.getAttribute('data-palette') || 'lavender';
+    document.querySelectorAll('#palette .pal').forEach(b => b.setAttribute('aria-checked', String(b.dataset.p === cur))); };
+  document.querySelectorAll('#palette .pal').forEach(b => b.addEventListener('click', () => {
+    const p = b.dataset.p;
+    if (p === 'lavender') root.removeAttribute('data-palette'); else root.setAttribute('data-palette', p);
+    try { localStorage.setItem(KEY, p); } catch (e) {}
+    sync(); toast('主題色：' + NAMES[p]);
+  }));
+  sync();
+})();
 
 /* ---------- upload & drop ---------- */
 $('uploadBtn').onclick = () => $('fileInput').click();
